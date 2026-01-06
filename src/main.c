@@ -8,8 +8,6 @@
 #include "combat.h"
 #include "event.h"
 
-#define DISTANCE_FINALE 20
-
 // --- MAIN ---
 int main() {
     srand(time(NULL));

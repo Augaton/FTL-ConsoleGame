@@ -222,3 +222,15 @@ Vaisseau genererBossFinal() {
     
     return boss;
 }
+
+int calculerDegats(int puissanceArme, int niveauMoteur) {
+    int chanceCritique = 10 + (niveauMoteur * 2); // 10% + 2% par niveau moteur
+    int r = rand() % 100;
+
+    if (r < chanceCritique) {
+        printf(COLOR_YELLOW " !!! COUP CRITIQUE !!! " COLOR_RESET "\n");
+        return puissanceArme * 2; // Dégâts doublés
+    }
+
+    return puissanceArme;
+}
