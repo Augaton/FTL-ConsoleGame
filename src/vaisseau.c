@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include "vaisseau.h"
 #include "utils.h"
-
 #define COLOR_RED     "\x1b[31m"
 #define COLOR_GREEN   "\x1b[32m"
 #define COLOR_YELLOW  "\x1b[33m"
@@ -32,7 +31,6 @@ void afficherVaisseau(Vaisseau *v) {
     printf("       [ Appuyez sur ENTREE pour quitter le journal ]\n");
     printf("==========================================================" COLOR_RESET "\n");
     
-    // Pour absorber le \n qui traîne et attendre l'utilisateur
-    int c; while ((c = getchar()) != '\n' && c != EOF); 
+
     getchar(); 
 }

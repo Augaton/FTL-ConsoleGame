@@ -65,12 +65,15 @@ printf(COLOR_CYAN "╔═══════════════════�
         printf("2. Consulter le journal de bord (Stats)\n");
         printf("3. Quitter le jeu\n" COLOR_RESET);
         printf("\nVotre choix : ");
-        scanf("%d", &choix);
-
         if (scanf("%d", &choix) != 1) {
             int c; while ((c = getchar()) != '\n' && c != EOF);
+            printf(COLOR_RED "\n[ERREUR] Saisie invalide !" COLOR_RESET);
+            SLEEP_MS(1000);
             continue;
         }
+
+        // Nettoyage du buffer après une saisie réussie pour éviter les sauts de ligne fantômes
+        int c; while ((c = getchar()) != '\n' && c != EOF);
 
         if (choix == 1) {
             const char* baliseA = inspecterBalise();
