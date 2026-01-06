@@ -31,7 +31,6 @@ int main() {
     printf("--- INITIALISATION DU SYSTEME ---\n");
     printf("Commandant, comment se nomme votre vaisseau ? : ");
 
-    getchar();
     fgets(joueur.nom, sizeof(joueur.nom), stdin);
     joueur.nom[strcspn(joueur.nom, "\n")] = 0;
 
