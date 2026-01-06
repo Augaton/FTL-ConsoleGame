@@ -6,23 +6,71 @@
 #include <stdlib.h>
 #include <string.h>
 
-void menuVoyage(Vaisseau *joueur) {
-    int choix = 0;
+#define COLOR_RED     "\x1b[31m"
+#define COLOR_GREEN   "\x1b[32m"
+#define COLOR_YELLOW  "\x1b[33m"
+#define COLOR_CYAN    "\x1b[36m"
+#define COLOR_RESET   "\x1b[0m"
+#define COLOR_BOLD    "\x1b[1m"
 
-    while (choix != 1) { // Tant que le joueur ne choisit pas de sauter
+void menuVoyage(Vaisseau *joueur) {
+    int continuerMenu = 1; // Variable de contrôle
+
+    while (continuerMenu && joueur->coque > 0) {
+        int choix = 0;
         effacerEcran();
-        printf("--- TABLEAU DE BORD : %s ---\n", joueur->nom);
-        printf("Distance parcourue : %d / 10\n", joueur->distanceParcourue);
-        printf("Carburant : %d | Ferraille : %d | Missiles : %d\n", 
+        
+printf(COLOR_CYAN "╔══════════════════════════════════════════════════════════╗\n");
+        printf("║  COMMANDANT: %-15s | SECTEUR: %02d/20     ║\n", joueur->nom, joueur->distanceParcourue);
+        printf("╚══════════════════════════════════════════════════════════╝" COLOR_RESET "\n\n");
+
+        // Barre de Coque avec dégradé de couleur
+        printf(" STATUS COQUE   : ");
+        int barres = (joueur->coque * 20) / joueur->coqueMax;
+        
+        // Couleur dynamique selon la vie
+        if (barres > 10) printf(COLOR_GREEN);
+        else if (barres > 5) printf(COLOR_YELLOW);
+        else printf(COLOR_RED);
+
+        for(int i=0; i<20; i++) {
+            if(i < barres) printf("█"); // Caractère plein
+            else printf("░");           // Caractère ombré
+        }
+        printf(" %d/%d" COLOR_RESET "\n", joueur->coque, joueur->coqueMax);
+
+        // Boucliers stylisés (Hexagones ou Cercles)
+        printf(" SYSTEME SHIELD : ");
+        for(int i=0; i < joueur->bouclierMax; i++) {
+            if(i < joueur->bouclier) printf(COLOR_CYAN "⬢ " COLOR_RESET); // Hexagone plein
+            else printf(COLOR_RED "⬡ " COLOR_RESET);                     // Hexagone vide
+        }
+        
+        printf("\n\n" COLOR_BOLD "--- INVENTAIRE ---" COLOR_RESET "\n");
+        printf(" [⚡] Carburant : %-2d | [⚓] Ferraille : %-3d | [🚀] Missiles : %-2d\n", 
                 joueur->carburant, joueur->ferraille, joueur->missiles);
-        printf("Coque : %d/%d | Bouclier : %d/%d\n", 
-                joueur->coque, joueur->coqueMax, joueur->bouclier, joueur->bouclierMax);
-        printf("--------------------------------------\n");
-        printf("1. Sauter vers le prochain secteur (-1 Carburant)\n");
+
+
+        printf("\n\n" COLOR_BOLD "--- AVENTURE ---" COLOR_RESET "\n");
+        printf("\n PROGRESSION ");
+        for(int i=1; i<=20; i++) {
+            if(i < joueur->distanceParcourue) printf(COLOR_GREEN "=" COLOR_RESET);
+            else if(i == joueur->distanceParcourue) printf(COLOR_BOLD ">" COLOR_RESET);
+            else printf(COLOR_CYAN "·" COLOR_RESET);
+        }
+        printf(" [FINAL]\n");
+
+        printf(COLOR_CYAN "--------------------------------------\n\n" COLOR_RESET);
+        printf(COLOR_BOLD "1. Sauter vers le prochain secteur (-1 Carburant)\n");
         printf("2. Consulter le journal de bord (Stats)\n");
-        printf("3. Quitter le jeu\n");
+        printf("3. Quitter le jeu\n" COLOR_RESET);
         printf("\nVotre choix : ");
         scanf("%d", &choix);
+
+        if (scanf("%d", &choix) != 1) {
+            int c; while ((c = getchar()) != '\n' && c != EOF);
+            continue;
+        }
 
         if (choix == 1) {
             const char* baliseA = inspecterBalise();
@@ -30,40 +78,34 @@ void menuVoyage(Vaisseau *joueur) {
             int choixSaut;
 
             printf("\n--- CARTE STELLAIRE ---\n");
-            printf("1. %s\n", baliseA);
-            printf("2. %s\n", baliseB);
-            printf("Votre choix : ");
+            printf("1. %s\n2. %s\nChoix : ", baliseA, baliseB);
             scanf("%d", &choixSaut);
 
             const char* destination = (choixSaut == 1) ? baliseA : baliseB;
 
-            if (strcmp(destination, "Nebuleuse (Inconnu - Gratuit)") == 0) {
-                printf("\n[ECONOMIE] Vous utilisez les courants de la nebuleuse (0 Carburant).\n");
-            } else {
-                if (joueur->carburant > 0) {
-                    joueur->carburant--;
-                } else {
-                    printf("\n[ALERTE] Plus de carburant ! Coque endommagee par la derive.\n");
+            if (strcmp(destination, "Nebuleuse (Inconnu - Gratuit)") != 0) {
+                if (joueur->carburant > 0) joueur->carburant--;
+                else {
+                    printf(COLOR_RED "\n[DERIVE] Pas de carburant ! Coque -5.\n" COLOR_RESET);
                     joueur->coque -= 5;
                 }
             }
 
             joueur->distanceParcourue++;
             executerEvenement(joueur, destination);
-            
-            if (joueur->coque <= 0) break;
+
+            if (joueur->coque > 0) {
+                printf("\n[Appuyez sur Entree pour stabiliser le vaisseau]");
+                int c; while ((c = getchar()) != '\n' && c != EOF); getchar();
+            }
         }
         else if (choix == 2) {
-            printf("\n--- STATISTIQUES AVANCEES ---\n");
-            printf("Puissance des Lasers : %d\n", joueur->armes);
-            printf("Chance d'esquive : 15%%\n");
-            printf("\n[Appuyez sur une touche pour revenir]");
-            getchar(); getchar(); // Petite pause
+            afficherVaisseau(joueur);
         }
         else if (choix == 3) {
-            printf("Extinction des systemes...\n");
-            joueur->coque = 0; // Pour sortir de la boucle du main
-            break;
+            printf("Fermeture des systemes...\n");
+            joueur->coque = 0;
+            continuerMenu = 0;
         }
     }
 }

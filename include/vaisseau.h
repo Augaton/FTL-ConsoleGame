@@ -15,4 +15,6 @@ typedef struct {
     int moteurs; 
 } Vaisseau;
 
+void afficherVaisseau(Vaisseau *v);
+
 #endif
