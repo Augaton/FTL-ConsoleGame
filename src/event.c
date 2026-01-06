@@ -84,9 +84,9 @@ void lancerSequenceDeSaut(Vaisseau *joueur) {
     int choixSaut;
 
     printf("\n" COLOR_YELLOW "─── CALCUL DES TRAJECTOIRES FTL ───" COLOR_RESET "\n");
-    printf(" A- %-30s\n", baliseA);
-    printf(" B- %-30s\n", baliseB);
-    printf("\n Destination (1 ou 2) : ");
+    printf("1. "); afficherDestinationColoree(baliseA); printf("\n");
+    printf("2. "); afficherDestinationColoree(baliseB); printf("\n");
+    printf(COLOR_BLUE "\n Destination (1 ou 2) >" COLOR_RESET);
     scanf("%d", &choixSaut);
 
     const char* destination = (choixSaut == 1) ? baliseA : baliseB;
@@ -115,6 +115,17 @@ const char* inspecterBalise() {
     if (r < 55) return "Station Commerciale (Magasin)";
     if (r < 80) return "Signal de Detresse";
     return "Secteur Vide";
+}
+
+// Petite fonction utilitaire pour l'affichage coloré
+void afficherDestinationColoree(const char* destination) {
+    if (strstr(destination, "Hostile")) printf(COLOR_RED);
+    else if (strstr(destination, "Station")) printf(COLOR_GREEN);
+    else if (strstr(destination, "Detresse")) printf(COLOR_YELLOW);
+    else if (strstr(destination, "Nebuleuse")) printf(COLOR_MAGENTA);
+    else printf(COLOR_CYAN);
+    
+    printf("%s" COLOR_RESET, destination);
 }
 
 void executerEvenement(Vaisseau *joueur, const char* type) {
