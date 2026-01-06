@@ -69,7 +69,7 @@ void ouvrirMagasin(Vaisseau *joueur) {
                 printf("Generateur de bouclier ameliore !\n");
             } else if (choix == 3 && joueur->ferraille >= 30) {
                 joueur->ferraille -= 30;
-                joueur->moteurs++; // Pense à l'ajouter dans ta struct !
+                joueur->moteurs++;
                 printf("Moteurs pousses ! Esquive amelioree.\n");
             }
         }
