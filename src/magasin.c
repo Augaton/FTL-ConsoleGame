@@ -23,7 +23,8 @@ void ouvrirMagasin(Vaisseau *joueur) {
             printf("\n-- MAINTENANCE --\n");
             printf("1. Reparer Coque (+5)  - 10 Fer\n");
             printf("2. Acheter Missiles (+3) - 15 Fer\n");
-            printf("3. Retour\n");
+            printf("3. Acheter Carburant (+?) - 5 Fer/Unités\n");
+            printf("4. Retour\n");
             scanf("%d", &choix);
 
             if (choix == 1 && joueur->ferraille >= 10 && joueur->coque < joueur->coqueMax) {
@@ -34,6 +35,18 @@ void ouvrirMagasin(Vaisseau *joueur) {
                 joueur->ferraille -= 15;
                 joueur->missiles += 3;
                 printf("Missiles recus.\n");
+            } else if (choix == 3) {
+                int quantite;
+                printf("Quantite de carburant a acheter : ");
+                scanf("%d", &quantite);
+                int coutTotal = quantite * 5;
+                if (joueur->ferraille >= coutTotal) {
+                    joueur->ferraille -= coutTotal;
+                    joueur->carburant += quantite;
+                    printf("Carburant ajoute.\n");
+                } else {
+                    printf("Fond insuffisants pour cette quantite.\n");
+                }
             }
         } 
         else if (categorie == 2) {
