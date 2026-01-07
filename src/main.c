@@ -15,7 +15,7 @@ int main() {
     int choixMenu;
 
     printf(COLOR_CYAN "╔════════════════════════════════════════╗\n");
-    printf("║          🚀 FTL Console 🚀           ║\n");
+    printf("║           🚀 FTL Console 🚀            ║\n");
     printf("╚════════════════════════════════════════╝\n" COLOR_RESET);
 
     // --- LOGIQUE DE CHARGEMENT ---
