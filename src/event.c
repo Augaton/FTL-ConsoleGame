@@ -43,7 +43,7 @@ void menuVoyage(Vaisseau *joueur) {
         // --- SECTION PROGRESSION ---
         printf("╠══════════════════════════════════════════════════════════╣\n");
         printf("║ PROGRESSION: ");
-        for(int i=1; i<=DISTANCE_FINALE; i++) {
+        for(int i=1; i<=joueur->distanceObjectif; i++) {
             if(i < joueur->distanceParcourue) printf(COLOR_GREEN "═");
             else if(i == joueur->distanceParcourue) printf(COLOR_BOLD COLOR_YELLOW "✈");
             else printf(COLOR_RESET "·");

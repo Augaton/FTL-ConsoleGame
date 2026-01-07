@@ -2,6 +2,7 @@
 #include "vaisseau.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 void effacerEcran() {
     #ifdef _WIN32
@@ -22,16 +23,16 @@ void afficherGameOver(Vaisseau *joueur) {
 
     printf(COLOR_BOLD "--- RAPPORT DE MISSION FINAL ---" COLOR_RESET "\n");
     printf(" Commandant        : %s\n", joueur->nom);
-    printf(" Secteurs parcourus: %d / %d\n", joueur->distanceParcourue, DISTANCE_FINALE);
+    printf(" Secteurs parcourus: %d / %d\n", joueur->distanceParcourue, joueur->distanceObjectif);
     printf(" Fortune restante  : %d ferrailles\n", joueur->ferraille);
     
     // Message personnalisé selon la progression
     printf("\n" COLOR_YELLOW " Verdict du Haut-Commandement : " COLOR_RESET);
-    if (joueur->distanceParcourue < DISTANCE_FINALE / 4) 
+    if (joueur->distanceParcourue < joueur->distanceObjectif / 4) 
         printf("Une recrue qui n'a pas survécu au premier saut.\n");
-    else if (joueur->distanceParcourue < DISTANCE_FINALE / 2)
+    else if (joueur->distanceParcourue < joueur->distanceObjectif / 2)
         printf("Un pilote prometteur, emporté par l'immensité du vide.\n");
-    else if (joueur->distanceParcourue < DISTANCE_FINALE)
+    else if (joueur->distanceParcourue < joueur->distanceObjectif)
         printf("Un héros de la résistance. On se souviendra de votre bravoure.\n");
     else
         printf("INCROYABLE ! Vous avez sauvé la galaxie avant de succomber.\n");
@@ -54,7 +55,7 @@ void afficherVictoire(Vaisseau *joueur) {
 
     printf(COLOR_BOLD "--- RAPPORT DE MISSION FINAL ---" COLOR_RESET "\n");
     printf(" Commandant        : %s\n", joueur->nom);
-    printf(" Secteurs parcourus: %d / %d\n", joueur->distanceParcourue, DISTANCE_FINALE);
+    printf(" Secteurs parcourus: %d / %d\n", joueur->distanceParcourue, joueur->distanceObjectif);
     printf(" Fortune restante  : %d ferrailles\n", joueur->ferraille);
 }
 

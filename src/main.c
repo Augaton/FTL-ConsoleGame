@@ -59,12 +59,31 @@ int main() {
         printf(COLOR_YELLOW "\n> " COLOR_RESET);
         fgets(joueur.nom, sizeof(joueur.nom), stdin);
         joueur.nom[strcspn(joueur.nom, "\n")] = 0;
+
+
+        printf("\n" COLOR_CYAN "--- CONFIGURATION DE LA MISSION ---" COLOR_RESET "\n");
+        printf("1. Raid rapide (10 secteurs)\n");
+        printf("2. Mission standard (20 secteurs)\n");
+        printf("3. Longue expédition (40 secteurs)\n");
+        printf("4. Personnalisé\n");
+        printf(COLOR_YELLOW "> " COLOR_RESET);
+        
+        int mode;
+        scanf("%d", &mode);
+        
+        if (mode == 1) joueur.distanceObjectif = 10;
+        else if (mode == 2) joueur.distanceObjectif = 20;
+        else if (mode == 3) joueur.distanceObjectif = 40;
+        else {
+            printf("Entrez le nombre de secteurs : ");
+            scanf("%d", &joueur.distanceObjectif);
+        }
         
         sauvegarderPartie(&joueur);
     }
 
     // --- BOUCLE PRINCIPALE DU JEU ---
-    while (joueur.coque > 0 && joueur.distanceParcourue < DISTANCE_FINALE) {
+    while (joueur.coque > 0 && joueur.distanceParcourue < joueur.distanceObjectif) {
         menuVoyage(&joueur); 
     }
 
@@ -73,7 +92,7 @@ int main() {
         afficherGameOver(&joueur);
         supprimerSauvegarde();
     } 
-    else if (joueur.distanceParcourue >= DISTANCE_FINALE) {
+    else if (joueur.distanceParcourue >= joueur.distanceObjectif) {
         afficherVictoire(&joueur);
         supprimerSauvegarde();
     }

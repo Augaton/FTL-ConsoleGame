@@ -13,7 +13,9 @@ typedef struct {
     int carburant;
     int distanceParcourue;
     int moteurs; 
-    
+
+    int distanceObjectif;
+
     // pour sauvegarde de l'état actuel
     char secteurActuel[50];
 
