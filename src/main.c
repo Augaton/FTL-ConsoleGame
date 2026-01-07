@@ -84,7 +84,23 @@ int main() {
 
     // --- BOUCLE PRINCIPALE DU JEU ---
     while (joueur.coque > 0 && joueur.distanceParcourue < joueur.distanceObjectif) {
-        menuVoyage(&joueur); 
+        
+        // Cas du DERNIER secteur : Le Boss
+        if (joueur.distanceParcourue == joueur.distanceObjectif - 1) {
+            printf(COLOR_RED "\n[ALERTE] Signature thermique massive détectée...\n" COLOR_RESET);
+
+            Vaisseau boss = genererBossFinal();
+            SLEEP_MS(2000);
+            lancerCombat(&joueur, &boss); 
+            
+            if (joueur.coque > 0) {
+                joueur.distanceParcourue++; 
+            }
+        } 
+        // Secteurs normaux
+        else {
+            menuVoyage(&joueur);
+        }
     }
 
     // --- GESTION DE LA FIN ---

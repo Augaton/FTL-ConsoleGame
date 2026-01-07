@@ -35,40 +35,47 @@ void afficherEtatCombat(Vaisseau *joueur, Vaisseau *ennemi) {
     printf("╚══════════════════════════════════════════════════╝" COLOR_RESET "\n");
 }
 
-void lancerCombat(Vaisseau *joueur) {
-    Vaisseau ennemi = genererEnnemi(joueur->distanceParcourue, joueur->seedSecteur);
-    
+void lancerCombat(Vaisseau *joueur, Vaisseau *ennemi) {
     SLEEP_MS(1500);
 
+    // 1. GESTION DU CONTACT ET PERSISTANCE
     if (joueur->ennemiPresent && joueur->ennemiCoqueActuelle > 0) {
-        ennemi.coque = joueur->ennemiCoqueActuelle;
-        printf(COLOR_YELLOW "\n[REPRISE] Contact maintenu avec : %s (%d/%d)" COLOR_RESET "\n", 
-               ennemi.nom, ennemi.coque, ennemi.coqueMax);
-        SLEEP_MS(1000);
+        ennemi->coque = joueur->ennemiCoqueActuelle;
+        printf(COLOR_YELLOW "\n[REPRISE] Contact maintenu avec : %s (%d/%d)" COLOR_RESET "\n",
+               ennemi->nom, ennemi->coque, ennemi->coqueMax);
     } else {
-        // Nouveau combat
         joueur->ennemiPresent = 1;
-        joueur->ennemiCoqueActuelle = ennemi.coque;
-        printf("\n[SCAN] Contact visuel : %s", ennemi.nom);
+        joueur->ennemiCoqueActuelle = ennemi->coque;
+        printf("\n[SCAN] Contact visuel : %s", ennemi->nom);
         sauvegarderPartie(joueur);
-        SLEEP_MS(1000);
     }
+    SLEEP_MS(1000);
 
     srand((unsigned int)time(NULL));
 
-    while (joueur->coque > 0 && ennemi.coque > 0) {
-        tourCombat(joueur, &ennemi);
+    // 2. BOUCLE DE COMBAT
+    while (joueur->coque > 0 && ennemi->coque > 0) {
+        tourCombat(joueur, ennemi);
 
-        joueur->ennemiCoqueActuelle = ennemi.coque;
+        // Mise à jour constante de la sauvegarde pour éviter la triche (Alt+F4)
+        joueur->ennemiCoqueActuelle = ennemi->coque;
         sauvegarderPartie(joueur);
     }
 
+    // 3. ISSUE DU COMBAT
     if (joueur->coque > 0) {
+        // Victoire
         int gain = (rand() % 20) + 15;
-        printf(COLOR_GREEN "\nVICTOIRE ! " COLOR_RESET "Vous recuperez " COLOR_YELLOW "%d Ferraille" COLOR_RESET ".\n", gain);
+        printf(COLOR_GREEN "\nVICTOIRE ! " COLOR_RESET "Le %s est en morceaux.\n", ennemi->nom);
+        printf("Vous recuperez " COLOR_YELLOW "%d Ferraille" COLOR_RESET " dans les debris.\n", gain);
+        
         joueur->ferraille += gain;
+        joueur->ennemiPresent = 0; // TRÈS IMPORTANT : On clôture le combat
+        joueur->ennemiCoqueActuelle = 0;
+        
         sauvegarderPartie(joueur);
     } else {
+        // Défaite
         printf(COLOR_RED "\n[DETRUITE] Votre vaisseau se desintegre dans le vide...\n" COLOR_RESET);
     }
     SLEEP_MS(2000);
@@ -251,17 +258,23 @@ Vaisseau genererEnnemi(int secteur, unsigned int seed) {
 }
 
 Vaisseau genererBossFinal() {
+    
     Vaisseau boss;
-    strcpy(boss.nom, "STARK ONE");
-    
-    boss.coqueMax = 50;
-    boss.coque = 50;
-    boss.bouclierMax = 4;
+    strcpy(boss.nom, "DESTROYEUR STELLAIRE");
+    boss.coque = 100;
+    boss.coqueMax = 100;
     boss.bouclier = 4;
-    boss.armes = 4;
-    boss.missiles = 10;
+    boss.bouclierMax = 4;
+    boss.armes = 10;
+    boss.missiles = 99;
     
-printf(COLOR_RED "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+    // Initialise TOUT le reste à 0 pour éviter les chiffres bizarres
+    boss.moteurs = 5;
+    boss.distanceParcourue = 0; 
+    boss.ferraille = 0;
+    
+    
+    printf(COLOR_RED "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
     printf("!!! " COLOR_YELLOW "ALERTE : SIGNATURE MASSIVE DETECTEE" COLOR_RED " !!!\n");
     printf("!!!      " COLOR_BOLD "LE VAISSEAU MERE EST ICI" COLOR_RESET COLOR_RED "        !!!\n");
     printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" COLOR_RESET "\n");

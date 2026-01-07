@@ -16,7 +16,7 @@ void menuVoyage(Vaisseau *joueur) {
         
         // --- HEADER COCKPIT ---
         printf(COLOR_CYAN "╔══════════════════════════════════════════════════════════╗\n");
-        printf("║ " COLOR_BOLD "%-18s" COLOR_RESET COLOR_CYAN "CONSOLE DE NAVIGATION   SECTEUR: %02d/20 ║\n", joueur->nom, joueur->distanceParcourue);
+        printf("║ " COLOR_BOLD "%-18s" COLOR_RESET COLOR_CYAN "CONSOLE DE NAVIGATION   SECTEUR: %02d/%d ║\n", joueur->nom, joueur->distanceParcourue, joueur->distanceObjectif);
         printf("╠══════════════════════════════════════════════════════════╣" COLOR_RESET "\n");
 
         // --- SECTION ÉTAT (Coque & Shield sur la même ligne pour gagner de la place) ---
@@ -191,7 +191,8 @@ void executerEvenement(Vaisseau *joueur, const char* type) {
     }
 
     if (strcmp(evenementFinal, "Signal Hostile (Combat)") == 0) {
-        lancerCombat(joueur);
+        Vaisseau ennemi = genererEnnemi(joueur->distanceParcourue, joueur->seedSecteur);
+        lancerCombat(joueur, &ennemi);
     } else if (strcmp(evenementFinal, "Station Commerciale (Magasin)") == 0) {
         ouvrirMagasin(joueur);
     } else if (strcmp(evenementFinal, "Signal de Detresse") == 0) {

@@ -3,7 +3,7 @@
 #include "vaisseau.h"
 #include <stdbool.h>
 
-void lancerCombat(Vaisseau *joueur);
+void lancerCombat(Vaisseau *joueur, Vaisseau *ennemi);
 void tourCombat(Vaisseau *joueur, Vaisseau *ennemi);
 bool checkEsquive(int chanceEsquive, Vaisseau *joueur);
 void rechargerBoucliers(Vaisseau *v);
