@@ -55,7 +55,7 @@ void menuVoyage(Vaisseau *joueur) {
         printf(COLOR_BOLD "  [1]" COLOR_RESET " ENGAGER LE SAUT SPATIAL\n");
         printf(COLOR_BOLD "  [2]" COLOR_RESET " CONSULTER LES LOGS TECHNIQUES\n");
         printf(COLOR_BOLD "  [3]" COLOR_RESET " ABANDONNER LA MISSION\n");
-        printf("\n" COLOR_CYAN " COMMANDE > " COLOR_RESET);
+        printf("\n" COLOR_YELLOW" COMMANDE > " COLOR_RESET);
 
         if (scanf("%d", &choix) != 1) {
             int c; while ((c = getchar()) != '\n' && c != EOF);
@@ -87,7 +87,7 @@ void lancerSequenceDeSaut(Vaisseau *joueur) {
     printf("\n" COLOR_YELLOW "─── CALCUL DES TRAJECTOIRES FTL ───" COLOR_RESET "\n");
     printf("1. "); afficherDestinationColoree(baliseA); printf("\n");
     printf("2. "); afficherDestinationColoree(baliseB); printf("\n");
-    printf(COLOR_BLUE "\n Destination (1 ou 2) >" COLOR_RESET);
+    printf(COLOR_YELLOW "\n Destination (1 ou 2) > " COLOR_RESET);
     scanf("%d", &choixSaut);
 
     const char* destination = (choixSaut == 1) ? baliseA : baliseB;
@@ -266,7 +266,7 @@ void evenementEpaveDerivante(Vaisseau *joueur) {
     printf("\n" COLOR_CYAN "[DECOUVERTE]" COLOR_RESET " Une carcasse de croiseur flotte ici.\n");
     printf("1. Envoyer une équipe de récupération (Risqué)\n");
     printf("2. Scanner à distance (Sûr mais faible gain)\n");
-    printf("Choix : ");
+    printf(COLOR_YELLOW "> " COLOR_RESET);
     scanf("%d", &choix);
 
     if (choix == 1) {
@@ -361,7 +361,7 @@ void evenementCapsuleSurvie(Vaisseau *joueur) {
     printf("\n" COLOR_CYAN "[SIGNAL]" COLOR_RESET " Une capsule de survie dérive. Elle semble dater de la dernière guerre.\n");
     printf("1. L'ouvrir avec précaution\n");
     printf("2. La recycler à distance (Sûr mais peu rentable)\n");
-    printf("Choix : ");
+    printf(COLOR_YELLOW "> " COLOR_RESET);
     int choix;
     scanf("%d", &choix);
 
@@ -395,7 +395,7 @@ void evenementMarchandAmbulant(Vaisseau *joueur) {
     printf("1. Acheter 2 Carburant (10 Ferraille)\n");
     printf("2. Acheter 3 Missiles (15 Ferraille)\n");
     printf("3. Ignorer\n");
-    printf("Choix : ");
+    printf(COLOR_YELLOW "> " COLOR_RESET);
     int choix;
     scanf("%d", &choix);
 
@@ -433,7 +433,7 @@ void evenementLoterie(Vaisseau *joueur) {
     printf("\n1. Parier 10 Ferrailles (Gain : x2)\n");
     printf("2. Parier 50 Ferrailles (Gain : x3 - Difficile)\n");
     printf("3. Passer votre chemin\n");
-    printf("Votre choix : ");
+    printf(COLOR_YELLOW "> " COLOR_RESET);
 
     int choix;
     scanf("%d", &choix);

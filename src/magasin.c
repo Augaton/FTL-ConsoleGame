@@ -24,7 +24,7 @@ void ouvrirMagasin(Vaisseau *joueur) {
         printf(COLOR_GREEN "║ " COLOR_RESET "4. [QUITTER]    " COLOR_RESET "  Reprendre la navigation            " COLOR_GREEN "║\n");
         printf(COLOR_GREEN "╚══════════════════════════════════════════════════════════╝" COLOR_RESET "\n");
         
-        printf("\n " COLOR_BOLD "Choisir catégorie > " COLOR_RESET);
+        printf("\n " COLOR_YELLOW "Choisir catégorie > " COLOR_RESET);
         if (scanf("%d", &categorie) != 1) {
             int c; while ((c = getchar()) != '\n' && c != EOF);
             continue;
@@ -38,7 +38,7 @@ void ouvrirMagasin(Vaisseau *joueur) {
             printf("2. Missiles (+3)       | 15 Fer. | Stock: %d\n", stockMissiles);
             printf("3. Carburant (x1)      | 05 Fer. | Stock: %d\n", stockCarburant);
             printf("4. Retour\n");
-            printf("Choix : ");
+            printf(COLOR_YELLOW "> " COLOR_RESET);
             scanf("%d", &choix);
 
             if (choix == 1 && joueur->ferraille >= 10 && joueur->coque < joueur->coqueMax) {
@@ -70,7 +70,7 @@ void ouvrirMagasin(Vaisseau *joueur) {
             printf("2. Shield +1 (Max: %-2d)   | 50 Fer.\n", joueur->bouclierMax);
             printf("3. Moteurs +1 (Esquive)    | 30 Fer.\n");
             printf("4. Retour\n");
-            printf("Choix : ");
+            printf(COLOR_YELLOW "> " COLOR_RESET);
             scanf("%d", &choix);
 
             if (!aVenduUpgrade) {
@@ -92,7 +92,7 @@ void ouvrirMagasin(Vaisseau *joueur) {
             printf("\n" COLOR_YELLOW "─── SERVICES DU MARCHÉ NOIR ───" COLOR_RESET "\n");
             printf("1. Vendre du Carburant (+4 Ferraille / Unité)\n");
             printf("2. Retour\n");
-            printf("Choix : ");
+            printf(COLOR_YELLOW "> " COLOR_RESET);
             scanf("%d", &choix);
 
             if (choix == 1) {

@@ -55,6 +55,11 @@ int main() {
         joueur.distanceParcourue = 0;
         joueur.moteurs = 0;
 
+        // IMPORTANT
+
+        joueur.ennemiPresent = 0;       
+        joueur.ennemiCoqueActuelle = 0;
+
         printf(COLOR_BLUE "\nCommandant, nommez votre vaisseau" COLOR_RESET);
         printf(COLOR_YELLOW "\n> " COLOR_RESET);
         fgets(joueur.nom, sizeof(joueur.nom), stdin);

@@ -43,9 +43,12 @@ void lancerCombat(Vaisseau *joueur, Vaisseau *ennemi) {
         ennemi->coque = joueur->ennemiCoqueActuelle;
         printf(COLOR_YELLOW "\n[REPRISE] Contact maintenu avec : %s (%d/%d)" COLOR_RESET "\n",
                ennemi->nom, ennemi->coque, ennemi->coqueMax);
-    } else {
+    }
+    else
+     {
         joueur->ennemiPresent = 1;
         joueur->ennemiCoqueActuelle = ennemi->coque;
+        
         printf("\n[SCAN] Contact visuel : %s", ennemi->nom);
         sauvegarderPartie(joueur);
     }
@@ -88,7 +91,7 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
     printf(COLOR_CYAN "\n--- VOTRE TOUR ---\n" COLOR_RESET);
     printf(COLOR_YELLOW "1. ATTAQUER\n" COLOR_RESET);
     printf(COLOR_BLUE "2. RECHARGER BOUCLIERS (Regen +2 a +4)\n" COLOR_RESET);
-    printf("Choix : ");
+    printf(COLOR_YELLOW "> " COLOR_RESET);
     scanf("%d", &choixAction);
 
     if (choixAction == 1) {
@@ -96,7 +99,7 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
         printf(COLOR_BLUE "\n--- CHOIX DE L'ARME ---\n" COLOR_RESET);
         printf(COLOR_YELLOW "1. Canon Laser (Peut percer le bouclier)\n");
         printf(COLOR_RED "2. Missile (Ignore bouclier | Munitions: %d)\n" COLOR_RESET, joueur->missiles);
-        printf("Choix : ");
+        printf(COLOR_YELLOW "> " COLOR_RESET);
         scanf("%d", &choixArme);
 
         printf("\nFeu !");
@@ -188,6 +191,7 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
         SLEEP_MS(1500);
     }
 }
+
 bool checkEsquive(int chanceEsquive, Vaisseau *joueur) {
     int chanceTotale = chanceEsquive + (joueur->moteurs * 5); // varible ChanceEsquive de base + 5% par niveau de moteur
     if ((rand() % 100) < chanceTotale) {
