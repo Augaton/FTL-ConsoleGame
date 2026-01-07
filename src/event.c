@@ -331,15 +331,9 @@ void evenementAnomalieSpatiale(Vaisseau *joueur) {
         printf(COLOR_YELLOW "✨ SURCHARGE : Les molécules de la coque se densifient. Bouclier Max +1 !" COLOR_RESET "\n");
     } 
     else if (r < 50) {
-        // EFFET 2 : Saut Temporel (Recul ou Avance)
-        int saut = (rand() % 2 == 0) ? 1 : -1;
-        joueur->distanceParcourue += saut;
+        joueur->distanceParcourue += -1;
         if (joueur->distanceParcourue < 0) joueur->distanceParcourue = 0;
-        
-        if (saut > 0)
-            printf(COLOR_GREEN "⏩ SAUT TEMPOREL : La faille vous a projeté vers l'avant ! (Secteur +1)" COLOR_RESET "\n");
-        else
-            printf(COLOR_RED "⏪ DISTORSION : Le temps s'inverse... Vous avez reculé ! (Secteur -1)" COLOR_RESET "\n");
+        printf(COLOR_GREEN "⏪ DISTORSION : Le temps s'inverse... Vous avez reculé ! (Secteur -1)" COLOR_RESET "\n");
     }
     else if (r < 75) {
         // EFFET 3 : Mutation des Ressources
