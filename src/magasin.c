@@ -104,6 +104,7 @@ void ouvrirMagasin(Vaisseau *joueur) {
             }
         }
         
+        if (categorie == 4) sauvegarderPartie(joueur);
         if (categorie != 4) SLEEP_MS(1200);
     }
 }

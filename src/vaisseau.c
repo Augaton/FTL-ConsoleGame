@@ -25,7 +25,7 @@ void afficherVaisseau(Vaisseau *v) {
     printf(COLOR_YELLOW "  [ LOGISTIQUE ]" COLOR_RESET "\n");
     printf("  ├─ " COLOR_BOLD "FERRAILLE" COLOR_RESET ": %-5d ⚓ (Crédits actuels)\n", v->ferraille);
     printf("  ├─ " COLOR_BOLD "CARBURANT" COLOR_RESET ": %-5d ⚡ (Unités de saut)\n", v->carburant);
-    printf("  └─ " COLOR_BOLD "DISTANCE " COLOR_RESET ": Sector %d/20 🚩\n", v->distanceParcourue);
+    printf("  └─ " COLOR_BOLD "DISTANCE " COLOR_RESET ": Sector %d/%d 🚩\n", v->distanceParcourue, DISTANCE_FINALE);
 
     // Pied de page interactif
     printf("\n" COLOR_CYAN "╚══════════════════════════════════════════════════════════╝" COLOR_RESET "\n");

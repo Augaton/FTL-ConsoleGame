@@ -1,6 +1,6 @@
 # 🚀 FTL Version Console
 
-**FTL Version Console** est un jeu de rôle (RPG) de survie spatiale en ligne de commande écrit en **C**. Inspiré par des classiques comme *FTL: Faster Than Light*, vous commandez un vaisseau spatial à travers 20 secteurs périlleux pour sauver la galaxie.
+**FTL Version Console** est un jeu de rôle (RPG) de survie spatiale en ligne de commande écrit en **C**. Inspiré par des classiques comme *FTL: Faster Than Light*, vous commandez un vaisseau spatial à travers de multiple secteurs périlleux pour sauver la galaxie.
 
 ![C Language](https://img.shields.io/badge/Language-C-blue.svg)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)

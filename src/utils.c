@@ -22,16 +22,16 @@ void afficherGameOver(Vaisseau *joueur) {
 
     printf(COLOR_BOLD "--- RAPPORT DE MISSION FINAL ---" COLOR_RESET "\n");
     printf(" Commandant        : %s\n", joueur->nom);
-    printf(" Secteurs parcourus: %d / 20\n", joueur->distanceParcourue);
+    printf(" Secteurs parcourus: %d / %d\n", joueur->distanceParcourue, DISTANCE_FINALE);
     printf(" Fortune restante  : %d ferrailles\n", joueur->ferraille);
     
     // Message personnalisé selon la progression
     printf("\n" COLOR_YELLOW " Verdict du Haut-Commandement : " COLOR_RESET);
-    if (joueur->distanceParcourue < 5) 
+    if (joueur->distanceParcourue < DISTANCE_FINALE / 4) 
         printf("Une recrue qui n'a pas survécu au premier saut.\n");
-    else if (joueur->distanceParcourue < 15)
+    else if (joueur->distanceParcourue < DISTANCE_FINALE / 2)
         printf("Un pilote prometteur, emporté par l'immensité du vide.\n");
-    else if (joueur->distanceParcourue < 20)
+    else if (joueur->distanceParcourue < DISTANCE_FINALE)
         printf("Un héros de la résistance. On se souviendra de votre bravoure.\n");
     else
         printf("INCROYABLE ! Vous avez sauvé la galaxie avant de succomber.\n");
@@ -54,7 +54,7 @@ void afficherVictoire(Vaisseau *joueur) {
 
     printf(COLOR_BOLD "--- RAPPORT DE MISSION FINAL ---" COLOR_RESET "\n");
     printf(" Commandant        : %s\n", joueur->nom);
-    printf(" Secteurs parcourus: %d / 20\n", joueur->distanceParcourue);
+    printf(" Secteurs parcourus: %d / %d\n", joueur->distanceParcourue, DISTANCE_FINALE);
     printf(" Fortune restante  : %d ferrailles\n", joueur->ferraille);
 }
 
@@ -62,7 +62,7 @@ void attendreJoueur() {
     printf(COLOR_CYAN "\n[ Appuyez sur ENTREE pour continuer ]" COLOR_RESET);
     int c;
     while ((c = getchar()) != '\n' && c != EOF); // Nettoie le buffer
-    getchar(); // Attend la pression de Entrée
+    getchar();
 }
 
 // Sauvegarde et chargement

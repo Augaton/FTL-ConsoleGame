@@ -42,7 +42,7 @@ void menuVoyage(Vaisseau *joueur) {
         // --- SECTION PROGRESSION ---
         printf("╠══════════════════════════════════════════════════════════╣\n");
         printf("║ PROGRESSION: ");
-        for(int i=1; i<=20; i++) {
+        for(int i=1; i<=DISTANCE_FINALE; i++) {
             if(i < joueur->distanceParcourue) printf(COLOR_GREEN "═");
             else if(i == joueur->distanceParcourue) printf(COLOR_BOLD COLOR_YELLOW "✈");
             else printf(COLOR_RESET "·");
@@ -91,7 +91,12 @@ void lancerSequenceDeSaut(Vaisseau *joueur) {
 
     const char* destination = (choixSaut == 1) ? baliseA : baliseB;
 
-    // Logique carburant...
+    // --- MISE À JOUR DU SECTEUR POUR LA SAUVEGARDE ---
+    // On enregistre où on va pour que le chargement sache quoi relancer
+    strncpy(joueur->secteurActuel, destination, 49);
+    joueur->secteurActuel[49] = '\0'; // Sécurité
+
+    // --- CONSOMMATION DE CARBURANT ---
     if (strcmp(destination, "Nebuleuse (Inconnu - Gratuit)") != 0) {
         if (joueur->carburant > 0) joueur->carburant--;
         else {
@@ -105,7 +110,17 @@ void lancerSequenceDeSaut(Vaisseau *joueur) {
     for(int i=0; i<3; i++) { printf(COLOR_CYAN "." COLOR_RESET); fflush(stdout); SLEEP_MS(300); }
     
     joueur->distanceParcourue++;
-    executerEvenement(joueur, destination);
+
+    // --- SAUVEGARDE ---
+    // Maintenant, le fichier contient la nouvelle distance ET le secteurActuel
+    sauvegarderPartie(joueur);
+
+    // --- EXÉCUTION ---
+    executerEvenement(joueur, joueur->secteurActuel);
+
+    // Après l'événement, on remet le secteur à "REPOS" pour éviter de relancer l'événement au chargement
+    strcpy(joueur->secteurActuel, "REPOS");
+    sauvegarderPartie(joueur);
 }
 
 const char* inspecterBalise() {

@@ -20,12 +20,23 @@ int main() {
 
     // --- LOGIQUE DE CHARGEMENT ---
     if (chargerPartie(&joueur)) {
-        printf("\n[INFO] Une sauvegarde a été trouvée (Secteur %d).\n", joueur.distanceParcourue);
-        printf("1. Continuer la mission\n");
-        printf("2. Nouvelle partie (Écrase la sauvegarde)\n");
-        printf("Choix : ");
+        printf(COLOR_GREEN "\n[INFO] Une sauvegarde a été trouvée (Secteur %d).\n" COLOR_RESET, joueur.distanceParcourue);
+        printf(COLOR_BLUE "1. Continuer la mission\n");
+        printf("2. Nouvelle partie (Écrase la sauvegarde)" COLOR_RESET);
+        printf(COLOR_YELLOW "\n> " COLOR_RESET);
         scanf("%d", &choixMenu);
         while(getchar() != '\n'); // Nettoyer le buffer après scanf
+
+        if (choixMenu == 1) {
+            if (strcmp(joueur.secteurActuel, "REPOS") != 0 && strlen(joueur.secteurActuel) > 0) {
+                printf(COLOR_YELLOW "\n[REPRISE] Retour au secteur : %s\n" COLOR_RESET, joueur.secteurActuel);
+                SLEEP_MS(1000);
+                executerEvenement(&joueur, joueur.secteurActuel);
+                
+                strcpy(joueur.secteurActuel, "REPOS");
+                sauvegarderPartie(&joueur);
+            }
+        }
     } else {
         choixMenu = 2; // Pas de sauvegarde, donc nouvelle partie d'office
     }
@@ -35,8 +46,8 @@ int main() {
         strcpy(joueur.nom, "");
         joueur.coque = 20;
         joueur.coqueMax = 20;
-        joueur.bouclier = 1;
-        joueur.bouclierMax = 1;
+        joueur.bouclier = 2;
+        joueur.bouclierMax = 5;
         joueur.armes = 2;
         joueur.missiles = 3;
         joueur.ferraille = 20;
@@ -44,11 +55,12 @@ int main() {
         joueur.distanceParcourue = 0;
         joueur.moteurs = 0;
 
-        printf("\nCommandant, nommez votre vaisseau : ");
+        printf(COLOR_BLUE "\nCommandant, nommez votre vaisseau" COLOR_RESET);
+        printf(COLOR_YELLOW "\n> " COLOR_RESET);
         fgets(joueur.nom, sizeof(joueur.nom), stdin);
         joueur.nom[strcspn(joueur.nom, "\n")] = 0;
         
-        sauvegarderPartie(&joueur); // Créer le fichier initial
+        sauvegarderPartie(&joueur);
     }
 
     // --- BOUCLE PRINCIPALE DU JEU ---
@@ -61,7 +73,7 @@ int main() {
         afficherGameOver(&joueur);
         supprimerSauvegarde();
     } 
-    else if (joueur.distanceParcourue >= 20) {
+    else if (joueur.distanceParcourue >= DISTANCE_FINALE) {
         afficherVictoire(&joueur);
         supprimerSauvegarde();
     }

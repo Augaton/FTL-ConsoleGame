@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 void afficherEtatCombat(Vaisseau *joueur, Vaisseau *ennemi) {
     effacerEcran();
@@ -12,7 +13,7 @@ void afficherEtatCombat(Vaisseau *joueur, Vaisseau *ennemi) {
     printf(COLOR_CYAN "╔══════════════════════════════════════════════════╗\n");
     
     // Ligne des Noms
-    printf("║ " COLOR_RESET "%-17s " COLOR_YELLOW "vs" COLOR_RESET "  %-26s " COLOR_CYAN "║\n", 
+    printf("║ " COLOR_RESET "%-18s " COLOR_YELLOW "vs" COLOR_RESET "  %-25s " COLOR_CYAN "║\n", 
            joueur->nom, ennemi->nom);
     
     // Ligne des Coques
@@ -35,18 +36,38 @@ void afficherEtatCombat(Vaisseau *joueur, Vaisseau *ennemi) {
 }
 
 void lancerCombat(Vaisseau *joueur) {
-    Vaisseau ennemi = genererEnnemi(joueur->distanceParcourue);
+    Vaisseau ennemi = genererEnnemi(joueur->distanceParcourue, joueur->seedSecteur);
     
     SLEEP_MS(1500);
 
+    if (joueur->ennemiPresent && joueur->ennemiCoqueActuelle > 0) {
+        ennemi.coque = joueur->ennemiCoqueActuelle;
+        printf(COLOR_YELLOW "\n[REPRISE] Contact maintenu avec : %s (%d/%d)" COLOR_RESET "\n", 
+               ennemi.nom, ennemi.coque, ennemi.coqueMax);
+        SLEEP_MS(1000);
+    } else {
+        // Nouveau combat
+        joueur->ennemiPresent = 1;
+        joueur->ennemiCoqueActuelle = ennemi.coque;
+        printf("\n[SCAN] Contact visuel : %s", ennemi.nom);
+        sauvegarderPartie(joueur);
+        SLEEP_MS(1000);
+    }
+
+    srand((unsigned int)time(NULL));
+
     while (joueur->coque > 0 && ennemi.coque > 0) {
         tourCombat(joueur, &ennemi);
+
+        joueur->ennemiCoqueActuelle = ennemi.coque;
+        sauvegarderPartie(joueur);
     }
 
     if (joueur->coque > 0) {
         int gain = (rand() % 20) + 15;
         printf(COLOR_GREEN "\nVICTOIRE ! " COLOR_RESET "Vous recuperez " COLOR_YELLOW "%d Ferraille" COLOR_RESET ".\n", gain);
         joueur->ferraille += gain;
+        sauvegarderPartie(joueur);
     } else {
         printf(COLOR_RED "\n[DETRUITE] Votre vaisseau se desintegre dans le vide...\n" COLOR_RESET);
     }
@@ -57,17 +78,17 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
     int choixAction, choixArme;
     afficherEtatCombat(joueur, ennemi);
 
-    printf("\n--- VOTRE TOUR ---\n");
-    printf("1. ATTAQUER\n");
-    printf("2. RECHARGER BOUCLIERS (Regen +2 a +4)\n");
+    printf(COLOR_CYAN "\n--- VOTRE TOUR ---\n" COLOR_RESET);
+    printf(COLOR_YELLOW "1. ATTAQUER\n" COLOR_RESET);
+    printf(COLOR_BLUE "2. RECHARGER BOUCLIERS (Regen +2 a +4)\n" COLOR_RESET);
     printf("Choix : ");
     scanf("%d", &choixAction);
 
     if (choixAction == 1) {
         // --- SOUS-MENU ATTAQUE ---
-        printf("\n--- CHOIX DE L'ARME ---\n");
-        printf("1. Canon Laser (Peut percer le bouclier)\n");
-        printf("2. Missile (Ignore bouclier | Munitions: %d)\n", joueur->missiles);
+        printf(COLOR_BLUE "\n--- CHOIX DE L'ARME ---\n" COLOR_RESET);
+        printf(COLOR_YELLOW "1. Canon Laser (Peut percer le bouclier)\n");
+        printf(COLOR_RED "2. Missile (Ignore bouclier | Munitions: %d)\n" COLOR_RESET, joueur->missiles);
         printf("Choix : ");
         scanf("%d", &choixArme);
 
@@ -176,70 +197,55 @@ void rechargerBoucliers(Vaisseau *v) {
     }
 }
 
-Vaisseau genererEnnemi(int secteur) {
+Vaisseau genererEnnemi(int secteur, unsigned int seed) {
     Vaisseau ennemi;
+    srand(seed); // Fixe l'aléatoire pour ce combat précis
 
     char *nomsEnnemis[] = {
-        "Le Rogue One",
-        "L'Etoile du Vide", 
-        "Pilleur de Ferraille",
-        "Nebuleuse Noire", 
-        "L'Impitoyable", 
-        "Vortex Sombre",
-        "Chasseur de Primes", 
-        "Le Fer a Repasser", 
-        "Hacker Solaire",
-        "Destructeur K-9", 
-        "Le Faucon de Plomb", 
-        "Silence Eternel",
-        "Faucon Milénium",
-        "Le Fer à Repasser"
+        "Le Rogue One", "L'Etoile du Vide", "Pilleur de Ferraille",
+        "Nebuleuse Noire", "L'Impitoyable", "Vortex Sombre",
+        "Chasseur de Primes", "Le Fer a Repasser", "Hacker Solaire",
+        "Destructeur K-9", "Le Faucon de Plomb", "Silence Eternel",
+        "Faucon Milénium"
     };
-    int nbNoms = 14; // Nombre total de noms dans la liste
+    int nbNoms = 13;
     strcpy(ennemi.nom, nomsEnnemis[rand() % nbNoms]);
 
-    // Logique d'apparition du Capital Ship (Rare et seulement après secteur 10)
+    // Logique Capital Ship
     int chanceCapital = rand() % 100;
-    
-    if (secteur >= 10 && chanceCapital < 25) { // 25% de chance
+    if (secteur >= 10 && chanceCapital < 25) {
         strcpy(ennemi.nom, "CAPITAL SHIP REBELLE");
-        printf(COLOR_RED "\n[ALERTE] SIGNATURE MASSIVE : %s détecté !" COLOR_RESET "\n", ennemi.nom);
         ennemi.coqueMax = 35 + secteur;
         ennemi.armes = 3 + (secteur / 5);
         ennemi.bouclierMax = 3;
+        ennemi.moteurs = 1;
         ennemi.missiles = 5;
-    }
-
-
-    int type = rand() % 3; // 3 types d'ennemis
-
-    if (type == 0) { // Éclaireur (Rapide mais fragile)
-        ennemi.coqueMax = 6 + secteur;
-        ennemi.armes = 1 + (secteur / 4);
-        ennemi.bouclierMax = 0 + (secteur / 5);
-        ennemi.moteurs = 2 + (secteur / 5);
-        printf("\n[SCAN] Contact visuel : %s", ennemi.nom);
-        printf("\n[SCAN] Type : " COLOR_RED "ECLAIREUR" COLOR_RESET " (Faible coque, rapide)\n");
-    } 
-    else if (type == 1) { // Chasseur (Équilibré)
-        ennemi.coqueMax = 10 + secteur;
-        ennemi.armes = 1 + (secteur / 3);
-        ennemi.bouclierMax = 1 + (secteur / 4);
-        ennemi.missiles = (secteur > 3) ? 1 : 0; // Les chasseurs ont des missiles après le secteur 3
-        printf("\n[SCAN] Contact visuel : %s", ennemi.nom);
-        printf("\n[SCAN] Type : " COLOR_RED "CHASSEUR" COLOR_RESET " (Equilibre)\n");
-    } 
-    else { // Croiseur (Lourd et blindé)
-        ennemi.coqueMax = 15 + secteur;
-        ennemi.armes = 1 + (secteur / 5);
-        ennemi.bouclierMax = 2 + (secteur / 4);
-        printf("\n[SCAN] Contact visuel : %s", ennemi.nom);
-        printf("\n[SCAN] Type : " COLOR_RED "CROISEUR" COLOR_RESET " (Blindage lourd)\n");
+    } else {
+        // Types classiques
+        int type = rand() % 3;
+        if (type == 0) { // ECLAIREUR
+            ennemi.coqueMax = 6 + secteur;
+            ennemi.armes = 1 + (secteur / 4);
+            ennemi.bouclierMax = 0 + (secteur / 5);
+            ennemi.moteurs = 2 + (secteur / 5);
+        } 
+        else if (type == 1) { // CHASSEUR
+            ennemi.coqueMax = 10 + secteur;
+            ennemi.armes = 1 + (secteur / 3);
+            ennemi.bouclierMax = 1 + (secteur / 4);
+            ennemi.moteurs = 1;
+        } 
+        else { // CROISEUR
+            ennemi.coqueMax = 15 + secteur;
+            ennemi.armes = 1 + (secteur / 5);
+            ennemi.bouclierMax = 2 + (secteur / 4);
+            ennemi.moteurs = 0;
+        }
     }
 
     ennemi.coque = ennemi.coqueMax;
     ennemi.bouclier = ennemi.bouclierMax;
-    ennemi.missiles = (secteur > 5) ? 2 : 0; // Les ennemis ont des missiles après le secteur 5
+    ennemi.missiles = (secteur > 5) ? 2 : 0;
     
     return ennemi;
 }

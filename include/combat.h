@@ -7,7 +7,7 @@ void lancerCombat(Vaisseau *joueur);
 void tourCombat(Vaisseau *joueur, Vaisseau *ennemi);
 bool checkEsquive(int chanceEsquive, Vaisseau *joueur);
 void rechargerBoucliers(Vaisseau *v);
-Vaisseau genererEnnemi(int secteur);
+Vaisseau genererEnnemi(int secteur, unsigned int seed);
 Vaisseau genererBossFinal();
 int calculerDegats(int puissanceArme, int niveauMoteur);
 

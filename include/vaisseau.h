@@ -13,6 +13,13 @@ typedef struct {
     int carburant;
     int distanceParcourue;
     int moteurs; 
+    
+    // pour sauvegarde de l'état actuel
+    char secteurActuel[50];
+
+    unsigned int seedSecteur; // La graine du secteur actuel
+    int ennemiCoqueActuelle; 
+    int ennemiPresent;
 } Vaisseau;
 
 void afficherVaisseau(Vaisseau *v);
