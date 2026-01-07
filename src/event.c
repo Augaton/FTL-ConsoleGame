@@ -203,7 +203,8 @@ void executerEvenement(Vaisseau *joueur, const char* type) {
 
 void lancerEvenementAleatoire(Vaisseau *joueur) {
     // On fixe l'aléatoire sur la seed du secteur
-    srand(joueur->seedSecteur);
+    unsigned int seedUnique = joueur->seedSecteur + (joueur->distanceParcourue * 200);
+    srand(seedUnique);
 
     int typeEv = rand() % 7; 
 
