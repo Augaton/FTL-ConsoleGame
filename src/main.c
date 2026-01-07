@@ -8,6 +8,19 @@
 #include "combat.h"
 #include "event.h"
 
+unsigned int genererSeedDepuisTexte(const char *str);
+
+unsigned int genererSeedDepuisTexte(const char *str) {
+    unsigned int hash = 5381;
+    int c;
+
+    while ((c = *str++)) {
+        hash = ((hash << 5) + hash) + c;
+    }
+
+    return hash;
+}
+
 // --- MAIN ---
 int main() {
     srand(time(NULL));
@@ -93,7 +106,29 @@ int main() {
             printf("Entrez le nombre de secteurs : ");
             scanf("%d", &joueur.distanceObjectif);
         }
+
+        printf("\n" COLOR_CYAN "--- CONFIGURATION DE LA SEED ---" COLOR_RESET "\n");
+        printf("1. Random\n");
+        printf("2. Personalisée\n");
+        printf(COLOR_YELLOW "> " COLOR_RESET);
         
+        int seedMode;
+        scanf("%d", &seedMode);
+        
+        if (seedMode == 1) {
+            joueur.seedSecteur = genererSeedDepuisTexte(joueur.nom) ^ (unsigned int)time(NULL);
+        } else {
+            printf("Entrez votre seed personnalisée\n");
+            printf(COLOR_YELLOW "> " COLOR_RESET);
+
+            unsigned int seedInput;
+            scanf("%u", &seedInput);
+            joueur.seedSecteur = seedInput;
+        }
+
+        printf(COLOR_GREEN "Seed definie : %u\n" COLOR_RESET, joueur.seedSecteur);
+        SLEEP_MS(1000);
+
         sauvegarderPartie(&joueur);
     }
 
