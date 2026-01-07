@@ -18,20 +18,20 @@ void menuVoyage(Vaisseau *joueur) {
         printf(COLOR_CYAN "╔══════════════════════════════════════════════════════════╗\n");
         printf("║ " COLOR_BOLD "%-18s" COLOR_RESET COLOR_CYAN "CONSOLE DE NAVIGATION   SECTEUR: %02d/%d ║\n", joueur->nom, joueur->distanceParcourue, joueur->distanceObjectif);
         printf("╠══════════════════════════════════════════════════════════╣" COLOR_RESET "\n");
-
-        // --- SECTION ÉTAT (Coque & Shield sur la même ligne pour gagner de la place) ---
-        int barres = (joueur->coque * 20) / joueur->coqueMax;
+        // --- SECTION ÉTAT ---
+        // int barres = (joueur->coque * 20) / joueur->coqueMax;
         printf(COLOR_CYAN "║ " COLOR_RESET "COQUE: ");
-        if (barres > 10) printf(COLOR_GREEN); else if (barres > 5) printf(COLOR_YELLOW); else printf(COLOR_RED);
-        for(int i=0; i<20; i++) printf(i < barres ? "█" : "░");
+        // ... (tes couleurs de coque) ...
         printf(COLOR_RESET " %02d/%02d  ", joueur->coque, joueur->coqueMax);
-        
+
         printf(COLOR_CYAN "SHIELD: " COLOR_RESET);
-        for(int i=0; i < joueur->bouclierMax; i++) {
-            printf(i < joueur->bouclier ? COLOR_CYAN "⬢ " : COLOR_RED "⬡ ");
+
+        for(int i=0; i < joueur->systemeBouclier.efficacite; i++) {
+            printf(i < joueur->bouclierActuel ? COLOR_CYAN "⬢ " : COLOR_RED "⬡ ");
         }
-        // Petit ajustement d'espaces pour fermer le cadre selon le nombre de boucliers
-        int espacesRestants = 14 - (joueur->bouclierMax * 2);
+
+        // Ajustement dynamique des espaces pour que le cadre ║ reste aligné
+        int espacesRestants = 14 - (joueur->systemeBouclier.efficacite * 2);
         for(int i=0; i<espacesRestants; i++) printf(" ");
         printf(COLOR_CYAN "║\n");
 
@@ -164,10 +164,10 @@ void descriptionSecteurVide(Vaisseau *joueur) {
         int typeBonus = rand() % 3;
         
         printf(COLOR_YELLOW "💡 MOMENT DE CALME : " COLOR_RESET);
-        if (typeBonus == 0 && joueur->bouclier < joueur->bouclierMax) {
-            joueur->bouclier++;
+        if (typeBonus == 0 && joueur->bouclierActuel < joueur->systemeBouclier.efficacite) {
+            joueur->bouclierActuel++;
             printf("Votre équipage a recalibré les boucliers (+1).\n");
-        } 
+        }
         else if (typeBonus == 1) {
             int gain = (rand() % 3) + 1;
             joueur->ferraille += gain;
@@ -320,9 +320,9 @@ void evenementAnomalieSpatiale(Vaisseau *joueur) {
     int r = rand() % 100;
 
     if (r < 25) { 
-        // EFFET 1 : Surcharge positive (Ton code original)
-        joueur->bouclierMax += 1;
-        joueur->bouclier = joueur->bouclierMax;
+        // On augmente l'efficacité du système de bouclier de façon permanente
+        joueur->systemeBouclier.efficacite += 1;
+        joueur->bouclierActuel = joueur->systemeBouclier.efficacite;
         printf(COLOR_YELLOW "✨ SURCHARGE : Les molécules de la coque se densifient. Bouclier Max +1 !" COLOR_RESET "\n");
     } 
     else if (r < 50) {

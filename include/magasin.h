@@ -4,5 +4,7 @@
 #include "vaisseau.h"
 
 void ouvrirMagasin(Vaisseau *joueur);
+void ameliorerBouclier(Vaisseau *v);
+void ameliorerArme(Vaisseau *v);
 
 #endif

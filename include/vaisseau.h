@@ -2,26 +2,36 @@
 #define VAISSEAU_H
 
 typedef struct {
+    char nom[50];
+    int rang;
+    int efficacite; 
+} Composant;
+
+typedef struct {
     char nom[30];
     int coque;
     int coqueMax;
-    int bouclier;
-    int bouclierMax;
-    int armes;
-    int missiles;
     int ferraille;
     int carburant;
-    int distanceParcourue;
     int moteurs; 
+    int missiles;
 
+    // --- SYSTÈME D'ÉQUIPEMENT ---
+    Composant systemeArme;
+    Composant systemeBouclier;
+    
+    // État actuel des boucliers (énergie disponible)
+    int bouclierActuel; 
+
+    // --- NAVIGATION ET OBJECTIFS ---
+    int distanceParcourue;
     int distanceObjectif;
-
-    // pour sauvegarde de l'état actuel
     char secteurActuel[50];
+    unsigned int seedSecteur;
 
-    unsigned int seedSecteur; // La graine du secteur actuel
-    int ennemiCoqueActuelle; 
+    // --- ÉTAT DU COMBAT (PERSISTANCE) ---
     int ennemiPresent;
+    int ennemiCoqueActuelle;
 } Vaisseau;
 
 void afficherVaisseau(Vaisseau *v);

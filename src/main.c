@@ -46,9 +46,6 @@ int main() {
         strcpy(joueur.nom, "");
         joueur.coque = 20;
         joueur.coqueMax = 20;
-        joueur.bouclier = 2;
-        joueur.bouclierMax = 5;
-        joueur.armes = 2;
         joueur.missiles = 3;
         joueur.ferraille = 20;
         joueur.carburant = 10;
@@ -59,6 +56,17 @@ int main() {
 
         joueur.ennemiPresent = 0;       
         joueur.ennemiCoqueActuelle = 0;
+
+        // Initialisation arme
+        strcpy(joueur.systemeArme.nom, "Laser Burst");
+        joueur.systemeArme.rang = 1;
+        joueur.systemeArme.efficacite = 2;
+
+        // Initialisation bouclier
+        strcpy(joueur.systemeBouclier.nom, "Generateur Ionique");
+        joueur.systemeBouclier.rang = 1;
+        joueur.systemeBouclier.efficacite = 2; 
+        joueur.bouclierActuel = 2;
 
         printf(COLOR_BLUE "\nCommandant, nommez votre vaisseau" COLOR_RESET);
         printf(COLOR_YELLOW "\n> " COLOR_RESET);

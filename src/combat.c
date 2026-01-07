@@ -25,12 +25,14 @@ void afficherEtatCombat(Vaisseau *joueur, Vaisseau *ennemi) {
            coqueJ, coqueE);
     
     // Ligne des Boucliers
-    char shieldJ[20], shieldE[20];
-    sprintf(shieldJ, "Shield: %d/%d", joueur->bouclier, joueur->bouclierMax);
-    sprintf(shieldE, "Shield: %d/%d", ennemi->bouclier, ennemi->bouclierMax);
-    
+    char shieldJ[25], shieldE[25];
+
+    // On affiche le bouclier actuel sur le max (qui est l'efficacite du systeme)
+    sprintf(shieldJ, "Shield: %d/%d", joueur->bouclierActuel, joueur->systemeBouclier.efficacite);
+    sprintf(shieldE, "Shield: %d/%d", ennemi->bouclierActuel, ennemi->systemeBouclier.efficacite);
+
     printf("║ " COLOR_CYAN "%-22s " COLOR_RESET "| " COLOR_CYAN "%-23s " COLOR_CYAN "║\n", 
-           shieldJ, shieldE);
+        shieldJ, shieldE);
     
     printf("╚══════════════════════════════════════════════════╝" COLOR_RESET "\n");
 }
@@ -38,48 +40,50 @@ void afficherEtatCombat(Vaisseau *joueur, Vaisseau *ennemi) {
 void lancerCombat(Vaisseau *joueur, Vaisseau *ennemi) {
     SLEEP_MS(1500);
 
-    // 1. GESTION DU CONTACT ET PERSISTANCE
+    // 1. GESTION DU CONTACT
     if (joueur->ennemiPresent && joueur->ennemiCoqueActuelle > 0) {
         ennemi->coque = joueur->ennemiCoqueActuelle;
-        printf(COLOR_YELLOW "\n[REPRISE] Contact maintenu avec : %s (%d/%d)" COLOR_RESET "\n",
+        printf(COLOR_YELLOW "\n[REPRISE] Contact maintenu : %s (%d/%d)" COLOR_RESET "\n",
                ennemi->nom, ennemi->coque, ennemi->coqueMax);
-    }
-    else
-     {
+    } else {
         joueur->ennemiPresent = 1;
         joueur->ennemiCoqueActuelle = ennemi->coque;
-        
-        printf("\n[SCAN] Contact visuel : %s", ennemi->nom);
+        printf("\n" COLOR_RED "[ALERTE]" COLOR_RESET " Contact visuel : %s", ennemi->nom);
         sauvegarderPartie(joueur);
     }
+    
     SLEEP_MS(1000);
-
     srand((unsigned int)time(NULL));
 
     // 2. BOUCLE DE COMBAT
     while (joueur->coque > 0 && ennemi->coque > 0) {
         tourCombat(joueur, ennemi);
-
-        // Mise à jour constante de la sauvegarde pour éviter la triche (Alt+F4)
         joueur->ennemiCoqueActuelle = ennemi->coque;
         sauvegarderPartie(joueur);
     }
 
     // 3. ISSUE DU COMBAT
     if (joueur->coque > 0) {
-        // Victoire
         int gain = (rand() % 20) + 15;
-        printf(COLOR_GREEN "\nVICTOIRE ! " COLOR_RESET "Le %s est en morceaux.\n", ennemi->nom);
-        printf("Vous recuperez " COLOR_YELLOW "%d Ferraille" COLOR_RESET " dans les debris.\n", gain);
-        
+        printf(COLOR_GREEN "\nVICTOIRE ! " COLOR_RESET "Le %s est detruit.\n", ennemi->nom);
+        printf("Recuperation de " COLOR_YELLOW "%d Ferraille" COLOR_RESET ".\n", gain);
         joueur->ferraille += gain;
-        joueur->ennemiPresent = 0; // TRÈS IMPORTANT : On clôture le combat
+
+        // --- SYSTEME DE LOOT D'EQUIPEMENT ---
+        // 15% de chance de loot si l'ennemi a un meilleur rang
+        if ((rand() % 100) < 15 && ennemi->systemeArme.rang > joueur->systemeArme.rang) {
+            printf(COLOR_MAGENTA "\n[SCANNER] Technologie superieure detectee !" COLOR_RESET);
+            printf("\nVous remplacez votre arme par : " COLOR_CYAN "%s (Mk %d)" COLOR_RESET "\n", 
+                   ennemi->systemeArme.nom, ennemi->systemeArme.rang);
+            joueur->systemeArme = ennemi->systemeArme;
+            SLEEP_MS(1000);
+        }
+
+        joueur->ennemiPresent = 0;
         joueur->ennemiCoqueActuelle = 0;
-        
         sauvegarderPartie(joueur);
     } else {
-        // Défaite
-        printf(COLOR_RED "\n[DETRUITE] Votre vaisseau se desintegre dans le vide...\n" COLOR_RESET);
+        printf(COLOR_RED "\n[CRITIQUE] Votre vaisseau se desintegre...\n" COLOR_RESET);
     }
     SLEEP_MS(2000);
 }
@@ -115,17 +119,18 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
                 printf("\n" COLOR_RED "MISSILE : Impact direct sur la coque (-%d) !" COLOR_RESET "\n", degatsFinaux);
             } 
             else {
-                int degatsTotal = calculerDegats(joueur->armes, joueur->moteurs);
-                
-                if (ennemi->bouclier > 0) {
-                    if (ennemi->bouclier >= degatsTotal) {
-                        ennemi->bouclier -= degatsTotal;
+                int degatsBase = joueur->systemeArme.efficacite;
+                int degatsTotal = calculerDegats(degatsBase, joueur->moteurs);
+
+                if (ennemi->bouclierActuel > 0) {
+                    if (ennemi->bouclierActuel >= degatsTotal) {
+                        ennemi->bouclierActuel -= degatsTotal;
                         printf(COLOR_CYAN "\nLASER : Le bouclier ennemi absorbe tout (-%d)." COLOR_RESET "\n", degatsTotal);
                     } else {
-                        int surplus = degatsTotal - ennemi->bouclier;
+                        int surplus = degatsTotal - ennemi->bouclierActuel;
                         printf(COLOR_YELLOW "\nLASER : Bouclier percé ! " COLOR_RESET);
-                        printf("Le bouclier absorbe %d et la " COLOR_RED "coque subit %d !" COLOR_RESET "\n", ennemi->bouclier, surplus);
-                        ennemi->bouclier = 0;
+                        printf("Le bouclier absorbe %d et la " COLOR_RED "coque subit %d !" COLOR_RESET "\n", ennemi->bouclierActuel, surplus);
+                        ennemi->bouclierActuel = 0;
                         ennemi->coque -= surplus;
                     }
                 } else {
@@ -136,15 +141,15 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
         }
         
         // Recharge automatique légère après l'attaque
-        if (joueur->bouclier < joueur->bouclierMax) {
-            joueur->bouclier += 1;
+        if (joueur->bouclierActuel < joueur->systemeBouclier.efficacite) {
+            joueur->bouclierActuel += 1;
             printf("[SYSTEME] Recharge automatique du bouclier (+1).\n");
         }
 
     } else if (choixAction == 2) {
         int regen = (rand() % 3) + 2;
-        joueur->bouclier += regen;
-        if (joueur->bouclier > joueur->bouclierMax) joueur->bouclier = joueur->bouclierMax;
+        joueur->bouclierActuel += regen;
+        if (joueur->bouclierActuel > joueur->systemeBouclier.efficacite) joueur->bouclierActuel = joueur->systemeBouclier.efficacite;
         printf("\n[MANOEUVRE] Vous déviez l'énergie aux boucliers (" COLOR_CYAN "+%d" COLOR_RESET ") !\n", regen);
     }
 
@@ -169,17 +174,18 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
                 printf(" Impact direct sur votre coque (-%d) !\n", degatsEnnemi);
             } 
             else {
-                degatsEnnemi = calculerDegats(ennemi->armes, ennemi->moteurs);
-                
-                if (joueur->bouclier > 0) {
-                    if (joueur->bouclier >= degatsEnnemi) {
-                        joueur->bouclier -= degatsEnnemi;
+                int degatsBase = joueur->systemeArme.efficacite;
+                int degatsEnnemi = calculerDegats(degatsBase, joueur->moteurs);
+
+                if (joueur->bouclierActuel > 0) {
+                    if (joueur->bouclierActuel >= degatsEnnemi) {
+                        joueur->bouclierActuel -= degatsEnnemi;
                         printf(COLOR_CYAN "\nVotre bouclier encaisse tout ! (-%d)" COLOR_RESET "\n", degatsEnnemi);
                     } else {
-                        int surplus = degatsEnnemi - joueur->bouclier;
+                        int surplus = degatsEnnemi - joueur->bouclierActuel;
                         printf(COLOR_YELLOW "\nALERTE : Bouclier surchargé ! " COLOR_RESET);
                         printf(COLOR_RED "%d dégâts ont traversé jusqu'à la coque !" COLOR_RESET "\n", surplus);
-                        joueur->bouclier = 0;
+                        joueur->bouclierActuel = 0;
                         joueur->coque -= surplus;
                     }
                 } else {
@@ -202,60 +208,55 @@ bool checkEsquive(int chanceEsquive, Vaisseau *joueur) {
 }
 
 void rechargerBoucliers(Vaisseau *v) {
-    if (v->bouclier < v->bouclierMax) {
-        v->bouclier++; 
-        printf("[SYSTEME] Bouclier regenere : %d/%d\n", v->bouclier, v->bouclierMax);
+    if (v->bouclierActuel < v->systemeBouclier.efficacite) {
+        v->bouclierActuel++; 
+        printf("[SYSTEME] Bouclier regenere : %d/%d\n", v->bouclierActuel, v->systemeBouclier.efficacite);
     }
 }
 
 Vaisseau genererEnnemi(int secteur, unsigned int seed) {
     Vaisseau ennemi;
-    srand(seed); // Fixe l'aléatoire pour ce combat précis
+    srand(seed);
 
-    char *nomsEnnemis[] = {
-        "Le Rogue One", "L'Etoile du Vide", "Pilleur de Ferraille",
-        "Nebuleuse Noire", "L'Impitoyable", "Vortex Sombre",
-        "Chasseur de Primes", "Le Fer a Repasser", "Hacker Solaire",
-        "Destructeur K-9", "Le Faucon de Plomb", "Silence Eternel",
-        "Faucon Milénium"
-    };
-    int nbNoms = 13;
-    strcpy(ennemi.nom, nomsEnnemis[rand() % nbNoms]);
+    char *nomsEnnemis[] = {"Rogue One", "Etoile du Vide", "Pilleur", "Vortex Sombre", "Hacker Solaire"};
+    strcpy(ennemi.nom, nomsEnnemis[rand() % 5]);
+
+    // --- Calcul du Rang global de l'ennemi (Secteur 1-10 -> Mk1, 10-20 -> Mk2, etc.) ---
+    int rangEnnemi = 1 + (secteur / 10);
+    if (rangEnnemi > 5) rangEnnemi = 5; // On cap à Mk V
 
     // Logique Capital Ship
-    int chanceCapital = rand() % 100;
-    if (secteur >= 10 && chanceCapital < 25) {
+    if (secteur >= 10 && (rand() % 100) < 25) {
         strcpy(ennemi.nom, "CAPITAL SHIP REBELLE");
         ennemi.coqueMax = 35 + secteur;
-        ennemi.armes = 3 + (secteur / 5);
-        ennemi.bouclierMax = 3;
         ennemi.moteurs = 1;
-        ennemi.missiles = 5;
+        
+        // Équipement lourd
+        sprintf(ennemi.systemeArme.nom, "Batterie Laser Mk %d", rangEnnemi + 1);
+        ennemi.systemeArme.rang = rangEnnemi + 1;
+        ennemi.systemeArme.efficacite = 4 + (secteur / 5);
+
+        sprintf(ennemi.systemeBouclier.nom, "Bouclier de Flotte Mk %d", rangEnnemi);
+        ennemi.systemeBouclier.rang = rangEnnemi;
+        ennemi.systemeBouclier.efficacite = 3;
     } else {
-        // Types classiques
+        // Types classiques (Eclaireur, Chasseur, Croiseur)
         int type = rand() % 3;
-        if (type == 0) { // ECLAIREUR
-            ennemi.coqueMax = 6 + secteur;
-            ennemi.armes = 1 + (secteur / 4);
-            ennemi.bouclierMax = 0 + (secteur / 5);
-            ennemi.moteurs = 2 + (secteur / 5);
-        } 
-        else if (type == 1) { // CHASSEUR
-            ennemi.coqueMax = 10 + secteur;
-            ennemi.armes = 1 + (secteur / 3);
-            ennemi.bouclierMax = 1 + (secteur / 4);
-            ennemi.moteurs = 1;
-        } 
-        else { // CROISEUR
-            ennemi.coqueMax = 15 + secteur;
-            ennemi.armes = 1 + (secteur / 5);
-            ennemi.bouclierMax = 2 + (secteur / 4);
-            ennemi.moteurs = 0;
-        }
+        ennemi.moteurs = (type == 0) ? 2 : 1; 
+        ennemi.coqueMax = 10 + secteur;
+
+        // Génération automatique du nom d'équipement
+        sprintf(ennemi.systemeArme.nom, "Laser Ennemi Mk %d", rangEnnemi);
+        ennemi.systemeArme.rang = rangEnnemi;
+        ennemi.systemeArme.efficacite = 1 + (secteur / 4);
+
+        sprintf(ennemi.systemeBouclier.nom, "Deflecteur Mk %d", rangEnnemi);
+        ennemi.systemeBouclier.rang = rangEnnemi;
+        ennemi.systemeBouclier.efficacite = secteur / 5;
     }
 
     ennemi.coque = ennemi.coqueMax;
-    ennemi.bouclier = ennemi.bouclierMax;
+    ennemi.bouclierActuel = ennemi.systemeBouclier.efficacite;
     ennemi.missiles = (secteur > 5) ? 2 : 0;
     
     return ennemi;
@@ -267,10 +268,19 @@ Vaisseau genererBossFinal() {
     strcpy(boss.nom, "DESTROYEUR STELLAIRE");
     boss.coque = 100;
     boss.coqueMax = 100;
-    boss.bouclier = 4;
-    boss.bouclierMax = 4;
-    boss.armes = 10;
+    boss.moteurs = 5;
     boss.missiles = 99;
+
+    // Arme Unique
+    strcpy(boss.systemeArme.nom, "CANON APOCALYPSE");
+    boss.systemeArme.rang = 99;
+    boss.systemeArme.efficacite = 10;
+
+    // Bouclier Unique
+    strcpy(boss.systemeBouclier.nom, "FORTERESSE IONIQUE");
+    boss.systemeBouclier.rang = 10;
+    boss.systemeBouclier.efficacite = 5;
+    boss.bouclierActuel = 5;
     
     // Initialise TOUT le reste à 0 pour éviter les chiffres bizarres
     boss.moteurs = 5;
