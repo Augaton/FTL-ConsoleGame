@@ -100,3 +100,10 @@ void supprimerSauvegarde() {
         // Le fichier n'existait probablement pas, rien à faire
     }
 }
+
+void finaliserEvenement(Vaisseau *joueur) {
+    strcpy(joueur->secteurActuel, "REPOS");
+    joueur->ennemiPresent = 0;
+    joueur->ennemiCoqueActuelle = 0;
+    sauvegarderPartie(joueur);
+}

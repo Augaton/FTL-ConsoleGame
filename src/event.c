@@ -248,18 +248,15 @@ void evenementDeresse(Vaisseau *joueur) {
             joueur->coque -= 3;
             printf(COLOR_RED "Piege ! " COLOR_RESET "L'explosion vous inflige 3 degats.\n");
         }
-        
-        // On sauvegarde immédiatement pour figer le résultat
-        sauvegarderPartie(joueur);
+    
 
     } else {
         printf("Vous passez votre chemin.\n");
     }
 
     srand((unsigned int)time(NULL));
-    strcpy(joueur->secteurActuel, "REPOS"); 
-    joueur->ennemiPresent = 0;
-    
+
+    finaliserEvenement(joueur);
     attendreJoueur();
 }
 
@@ -288,9 +285,7 @@ void evenementEpaveDerivante(Vaisseau *joueur) {
         joueur->ferraille += 5;
     }
 
-    strcpy(joueur->secteurActuel, "REPOS"); 
-    joueur->ennemiPresent = 0;
-    sauvegarderPartie(joueur);
+finaliserEvenement(joueur);
 
     attendreJoueur();
 }
@@ -310,10 +305,7 @@ void evenementPluieAsteroides(Vaisseau *joueur) {
         joueur->coque -= 3;
     }
 
-    strcpy(joueur->secteurActuel, "REPOS"); 
-    joueur->ennemiPresent = 0;
-    sauvegarderPartie(joueur);
-
+    finaliserEvenement(joueur);
     attendreJoueur();
 }
 
@@ -359,9 +351,7 @@ void evenementAnomalieSpatiale(Vaisseau *joueur) {
         printf("Dégâts structurels subis (-4 Coque) et perte d'une unité de carburant.\n");
     }
 
-    strcpy(joueur->secteurActuel, "REPOS"); 
-    joueur->ennemiPresent = 0;
-    sauvegarderPartie(joueur);
+finaliserEvenement(joueur);
 
     attendreJoueur();
 }
@@ -394,10 +384,7 @@ void evenementCapsuleSurvie(Vaisseau *joueur) {
         joueur->ferraille += 5;
     }
 
-    strcpy(joueur->secteurActuel, "REPOS"); 
-    joueur->ennemiPresent = 0;
-    sauvegarderPartie(joueur);
-
+    finaliserEvenement(joueur);
     attendreJoueur();
 }
 
@@ -429,10 +416,7 @@ void evenementMarchandAmbulant(Vaisseau *joueur) {
         printf("Le marchand s'éloigne en maugréant.\n");
     }
 
-    strcpy(joueur->secteurActuel, "REPOS"); 
-    joueur->ennemiPresent = 0;
-    sauvegarderPartie(joueur);
-
+    finaliserEvenement(joueur);
     attendreJoueur();
 }
 
@@ -490,9 +474,6 @@ void evenementLoterie(Vaisseau *joueur) {
         printf("Vous gardez votre argent pour des réparations plus urgentes.\n");
     }
 
-    strcpy(joueur->secteurActuel, "REPOS"); 
-    joueur->ennemiPresent = 0;
-    sauvegarderPartie(joueur);
-    
+    finaliserEvenement(joueur);
     attendreJoueur();
 }
