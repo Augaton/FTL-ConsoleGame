@@ -119,7 +119,6 @@ void menuVoyage(Vaisseau *joueur) {
         }
         else if (choix == 2) {
             afficherVaisseau(joueur);
-            attendreJoueur(); // Pause pour laisser le temps de lire
         }
         else if (choix == 3) {
             // AJOUT D'UNE CONFIRMATION DE SÉCURITÉ
