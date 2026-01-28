@@ -473,6 +473,29 @@ void evenementMarchandAmbulant(Vaisseau *joueur) {
         
         // On lance le combat
         lancerCombat(joueur, &marchand);
+
+        if (joueur->chargeFTL >= joueur->maxchargeFTL) {
+            printf(COLOR_YELLOW "\n[ESCAPADE] Vous activez vos moteurs FTL pour fuir, laissant le marchand en plan.\n" COLOR_RESET);
+            SLEEP_MS(1000);
+            return;
+        }
+
+        if (joueur->coque > 0 && marchand.coque <= 0) {
+            printf(COLOR_YELLOW "\n[PILLAGE] Vous forcez la soute de l'épave fumante...\n" COLOR_RESET);
+            SLEEP_MS(800);
+
+            // Génération du butin "Marchandise"
+            int volFuel = (rand() % 3) + 2;     // 2 à 4 Carburant
+            int volMissiles = (rand() % 3) + 2; // 2 à 4 Missiles
+
+            joueur->carburant += volFuel;
+            joueur->missiles += volMissiles;
+
+            printf("Vous récupérez : " COLOR_CYAN "+%d Carburant" COLOR_RESET " et " COLOR_RED "+%d Missiles" COLOR_RESET " !\n", 
+                   volFuel, volMissiles);
+            
+            SLEEP_MS(1500);
+        }
         
         // Note : Si le joueur gagne, 'lancerCombat' gère déjà le butin (ferraille/arme).
         // Si le joueur fuit ou meurt, 'lancerCombat' gère aussi la suite.
@@ -776,15 +799,15 @@ void ouvrirMenuDebug(Vaisseau *joueur) {
             printf("Porte-monnaie rempli !\n");
         }
         else if (choixDebug == 3) {
-            joueur->systemeArme.rang = 5;
-            joueur->systemeArme.efficacite = 10;
+            joueur->systemeArme.rang += 5;
+            joueur->systemeArme.efficacite += 10;
             strcpy(joueur->systemeArme.nom, "LASER DE LA MORT");
             
-            joueur->systemeBouclier.rang = 5;
-            joueur->systemeBouclier.efficacite = 5;
+            joueur->systemeBouclier.rang += 5;
+            joueur->systemeBouclier.efficacite += 5;
             joueur->bouclierActuel = 5;
             
-            joueur->moteurs = 5;
+            joueur->moteurs += 5;
             printf("Vaisseau en mode GOD TIER.\n");
         }
         else if (choixDebug == 4) {
