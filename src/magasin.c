@@ -3,27 +3,36 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h> // Nécessaire pour time(NULL)
 
 // Macro pour l'inflation : Prix de base + (Fatigue * 10)
-// L'inflation est moins punitive qu'avant (10 au lieu de 15)
 #define PRIX_INFLATION(base, fatigue) ((base) + ((fatigue) * 10))
 
 void ouvrirMagasin(Vaisseau *joueur) {
     int categorie = 0;
     
-    // Stocks aléatoires
+    // --- 1. INITIALISATION DU GÉNÉRATEUR ANTI-TRICHE ---
+    // On crée une graine unique basée sur ta sauvegarde (seedSecteur) 
+    // et l'endroit où tu es (distanceParcourue).
+    // Résultat : Le magasin sera TOUJOURS le même à ce secteur précis.
+    unsigned int seedMagasin = joueur->seedSecteur + (joueur->distanceParcourue * 4242);
+    srand(seedMagasin);
+    
+    // --- 2. GÉNÉRATION DES STOCKS ET PROMOS ---
     int stockMissiles = (rand() % 4) + 2;
     int stockCarburant = (rand() % 6) + 5;
+
+    // Gestion de la PROMO UNIQUE (Coup de Fusil)
+    int idPromo = (rand() % 5) + 1; 
+    int pourcentPromo = (rand() % 31) + 20; // Entre 20% et 50%
+
+    // --- 3. RETOUR À L'ALÉATOIRE NORMAL ---
+    // On remet le hasard sur l'horloge pour que les combats suivants restent imprévisibles
+    srand(time(NULL));
     
     // Gestion de l'inflation
     int nombreAchats = 0;
     const int SEUIL_AVANT_INFLATION = 2; // Les 2 premiers achats sont au prix normal
-
-    // Gestion de la PROMO UNIQUE (Coup de Fusil)
-    // On choisit un ID d'article au hasard (1 à 5)
-    int idPromo = (rand() % 5) + 1; 
-    // On choisit un pourcentage de réduction au hasard (20% à 50%)
-    int pourcentPromo = (rand() % 31) + 20; 
 
     while (categorie != 4) {
         effacerEcran();
@@ -58,7 +67,7 @@ void ouvrirMagasin(Vaisseau *joueur) {
         else if (idPromo == 4) strcpy(nomPromo, "COQUE");
         else strcpy(nomPromo, "VISÉE");
 
-        printf("║ " COLOR_MAGENTA "★ COUP DE FUSIL : -%d%% sur : %-20s" COLOR_GREEN "        ║\n", pourcentPromo, nomPromo);
+        printf("║ " COLOR_MAGENTA "★ PROMO FLASH : -%d%% sur : %-20s" COLOR_GREEN "           ║\n", pourcentPromo, nomPromo);
         
         printf("╠══════════════════════════════════════════════════════════╣" COLOR_RESET "\n");
         printf(COLOR_GREEN "║ " COLOR_CYAN "1. [MAINTENANCE]" COLOR_RESET "  Réparations & Munitions                " COLOR_GREEN "║\n");
@@ -101,8 +110,7 @@ void ouvrirMagasin(Vaisseau *joueur) {
             int choix = 0;
             printf("\n" COLOR_RED "─── ATELIER D'INGÉNIERIE ───" COLOR_RESET "\n");
 
-            // 1. PRIX DE BASE (Réduits par rapport à avant)
-            // Multiplicateurs baissés (20 au lieu de 30, 25 au lieu de 40, etc.)
+            // 1. PRIX DE BASE
             int baseArme = 20 * (joueur->systemeArme.rang + 1);
             int baseBouclier = 25 * (joueur->systemeBouclier.rang + 1);
             int baseMoteur = 15 * (joueur->moteurs + 1);
@@ -110,7 +118,6 @@ void ouvrirMagasin(Vaisseau *joueur) {
             int baseVisee = 20 + (joueur->precision);
 
             // 2. APPLICATION DE LA PROMO CIBLÉE
-            // On stocke si l'item est en promo pour l'affichage
             int isPromo[6] = {0}; 
             
             if (idPromo == 1) { baseArme = baseArme * (100 - pourcentPromo) / 100; isPromo[1] = 1; }
@@ -119,7 +126,7 @@ void ouvrirMagasin(Vaisseau *joueur) {
             if (idPromo == 4) { baseCoque = baseCoque * (100 - pourcentPromo) / 100; isPromo[4] = 1; }
             if (idPromo == 5) { baseVisee = baseVisee * (100 - pourcentPromo) / 100; isPromo[5] = 1; }
 
-            // 3. APPLICATION DE L'INFLATION (Si buffer épuisé)
+            // 3. APPLICATION DE L'INFLATION
             int prixArme = PRIX_INFLATION(baseArme, fatigueIngenieur);
             int prixBouclier = PRIX_INFLATION(baseBouclier, fatigueIngenieur);
             int prixMoteur = PRIX_INFLATION(baseMoteur, fatigueIngenieur);
@@ -127,23 +134,18 @@ void ouvrirMagasin(Vaisseau *joueur) {
             int prixVisee = PRIX_INFLATION(baseVisee, fatigueIngenieur);
 
             // --- AFFICHAGE DU MENU ---
-            
-            // Armes
             printf("1. Upgrade %-15s (-> Mk %d) | ", joueur->systemeArme.nom, joueur->systemeArme.rang + 1);
             if (isPromo[1]) printf(COLOR_MAGENTA "(-%d%%) " COLOR_RESET, pourcentPromo);
             printf("%d Fer.\n", prixArme);
 
-            // Boucliers
             printf("2. Upgrade %-15s (-> Mk %d) | ", joueur->systemeBouclier.nom, joueur->systemeBouclier.rang + 1);
             if (isPromo[2]) printf(COLOR_MAGENTA "(-%d%%) " COLOR_RESET, pourcentPromo);
             printf("%d Fer.\n", prixBouclier);
 
-            // Moteurs
             printf("3. Moteurs (-> Esquive Lvl %d)           | ", joueur->moteurs + 1);
             if (isPromo[3]) printf(COLOR_MAGENTA "(-%d%%) " COLOR_RESET, pourcentPromo);
             printf("%d Fer.\n", prixMoteur);
 
-            // Autres
             printf("4. Renforcer Coque (+10 Max)               | ");
             if (isPromo[4]) printf(COLOR_MAGENTA "(-%d%%) " COLOR_RESET, pourcentPromo);
             printf("%d Fer.\n", prixCoque);
@@ -203,7 +205,6 @@ void ouvrirMagasin(Vaisseau *joueur) {
             if (achatEffectue) {
                 nombreAchats++;
                 
-                // Si on vient de dépasser le seuil, petit message d'avertissement
                 if (nombreAchats == SEUIL_AVANT_INFLATION) {
                     printf(COLOR_YELLOW "⚠ Fin des tarifs préférentiels. L'inflation s'appliquera au prochain achat !\n" COLOR_RESET);
                     SLEEP_MS(1200);
@@ -219,7 +220,6 @@ void ouvrirMagasin(Vaisseau *joueur) {
             int choix = 0;
             printf("\n" COLOR_YELLOW "─── SERVICES DU MARCHÉ NOIR ───" COLOR_RESET "\n");
             printf("1. Vendre 1 Carburant (+4 Ferraille)\n");
-            // Prix de revente ajusté pour être intéressant mais pas cassé
             printf("2. Recycler Arme Actuelle (Gain : Rang * 12)\n"); 
             printf("3. Retour\n > ");
             scanf("%d", &choix);
@@ -241,7 +241,6 @@ void ouvrirMagasin(Vaisseau *joueur) {
     }
 }
 
-// ... Les fonctions ameliorerArme et ameliorerBouclier restent identiques ...
 void ameliorerArme(Vaisseau *v) {
     v->systemeArme.rang++;
     v->systemeArme.efficacite += 2; 
@@ -256,4 +255,3 @@ void ameliorerBouclier(Vaisseau *v) {
     snprintf(v->systemeBouclier.nom, 50, "Bouclier Ion Mk %d", v->systemeBouclier.rang);
     printf(COLOR_GREEN "✔ Nouveau système installé : %s !\n" COLOR_RESET, v->systemeBouclier.nom);
 }
-
