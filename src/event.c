@@ -321,10 +321,10 @@ void evenementDetresse(Vaisseau *joueur) {
     unsigned int seedUnique = joueur->seedSecteur + (joueur->distanceParcourue * 210);
     srand(seedUnique);
 
-    printf("\n" COLOR_YELLOW "╔════ [ SIGNAL DE DÉTRESSE ] ════════════════════════════╗" COLOR_RESET "\n");
+    printf("\n" COLOR_YELLOW "╔════ [ SIGNAL DE DÉTRESSE ] ═══════════════════════════════════╗\n");
     printf("║ Un transporteur civil est coincé dans un champ d'astéroïdes.  ║\n");
     printf("║ Sa coque est percée et il demande de l'aide immédiate.        ║\n");
-    printf("╚═══════════════════════════════════════════════════════════════╝\n");
+    printf("╚═══════════════════════════════════════════════════════════════╝\n" COLOR_RESET);
 
     // --- OPTIONS ---
     printf("1. Tenter une manoeuvre de remorquage (Risqué - 60%% Succès)\n");
@@ -1020,11 +1020,12 @@ void ouvrirMenuDebug(Vaisseau *joueur) {
         printf(" 5. Lancer Marchand (Pour tester l'attaque)\n");
         printf(" 6. Lancer Pluie d'Astéroides\n");
         printf(" 7. Lancer L'Ermite Fou\n");
+        printf(" 8. Lancer Signal de Détresse\n");
 
         printf(COLOR_RED "\n --- COMBAT ---" COLOR_RESET "\n");
-        printf(" 8. Spawner le BOSS FINAL (Test Suicide)\n");
+        printf(" 100. Spawner le BOSS FINAL (Test Suicide)\n");
         
-        printf("\n 9. [QUITTER DEBUG]\n");
+        printf("\n 101. [QUITTER DEBUG]\n");
         printf(COLOR_YELLOW " DEBUG > " COLOR_RESET);
         
         scanf("%d", &choixDebug);
@@ -1064,6 +1065,9 @@ void ouvrirMenuDebug(Vaisseau *joueur) {
             evenementErmite(joueur);
         }
         else if (choixDebug == 8) {
+            evenementDetresse(joueur);
+        }
+        else if (choixDebug == 100) {
             printf(COLOR_RED "INVOCATION DU BOSS...\n" COLOR_RESET);
             SLEEP_MS(1000);
             Vaisseau boss = genererBossFinal();
@@ -1072,7 +1076,7 @@ void ouvrirMenuDebug(Vaisseau *joueur) {
             joueur->ennemiPresent = 0;
         }
 
-        if (choixDebug != 9) {
+        if (choixDebug != 101) {
             SLEEP_MS(500);
             attendreJoueur();
         }
