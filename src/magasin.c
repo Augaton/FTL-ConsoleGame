@@ -4,17 +4,62 @@
 #include <stdlib.h>
 #include <string.h>
 
+// Macro pour l'inflation : Prix de base + (Fatigue * 10)
+// L'inflation est moins punitive qu'avant (10 au lieu de 15)
+#define PRIX_INFLATION(base, fatigue) ((base) + ((fatigue) * 10))
+
 void ouvrirMagasin(Vaisseau *joueur) {
     int categorie = 0;
+    
+    // Stocks aléatoires
     int stockMissiles = (rand() % 4) + 2;
     int stockCarburant = (rand() % 6) + 5;
-    int aVenduUpgrade = 0;
+    
+    // Gestion de l'inflation
+    int nombreAchats = 0;
+    const int SEUIL_AVANT_INFLATION = 2; // Les 2 premiers achats sont au prix normal
+
+    // Gestion de la PROMO UNIQUE (Coup de Fusil)
+    // On choisit un ID d'article au hasard (1 à 5)
+    int idPromo = (rand() % 5) + 1; 
+    // On choisit un pourcentage de réduction au hasard (20% à 50%)
+    int pourcentPromo = (rand() % 31) + 20; 
 
     while (categorie != 4) {
         effacerEcran();
+
+        // Calcul de la fatigue actuelle (0 tant qu'on n'a pas dépassé le seuil)
+        int fatigueIngenieur = 0;
+        if (nombreAchats >= SEUIL_AVANT_INFLATION) {
+            fatigueIngenieur = nombreAchats - SEUIL_AVANT_INFLATION + 1;
+        }
         
         printf(COLOR_GREEN "╔══════════════════════════════════════════════════════════╗\n");
         printf("║ " COLOR_BOLD "🛒 DOCK COMMERCIAL" COLOR_RESET COLOR_GREEN "          CRÉDITS: " COLOR_YELLOW "%-5d ⚓" COLOR_GREEN " ║\n", joueur->ferraille);
+        printf("╠══════════════════════════════════════════════════════════╣" COLOR_RESET "\n");
+
+        // Message d'ambiance selon l'inflation
+        if (fatigueIngenieur > 0) {
+            printf("║ " COLOR_RED "⚠ TARIFS MAJORÉS : Demande élevée (+%d fer/article)" COLOR_GREEN "    ║\n", fatigueIngenieur * 10);
+        } else {
+            // Affiche combien d'achats restent avant hausse
+            int reste = SEUIL_AVANT_INFLATION - nombreAchats;
+            if (reste > 0)
+                printf("║ " COLOR_CYAN "ℹ OFFRE : Encore %d achat(s) à prix coûtant !" COLOR_GREEN "            ║\n", reste);
+            else
+                printf("║ " COLOR_YELLOW "⚠ ATTENTION : Prochain achat déclenche l'inflation." COLOR_GREEN "     ║\n");
+        }
+        
+        // Affichage de la Promo du jour
+        char nomPromo[30];
+        if (idPromo == 1) strcpy(nomPromo, "ARMES");
+        else if (idPromo == 2) strcpy(nomPromo, "BOUCLIERS");
+        else if (idPromo == 3) strcpy(nomPromo, "MOTEURS");
+        else if (idPromo == 4) strcpy(nomPromo, "COQUE");
+        else strcpy(nomPromo, "VISÉE");
+
+        printf("║ " COLOR_MAGENTA "★ COUP DE FUSIL : -%d%% sur : %-15s" COLOR_GREEN "        ║\n", pourcentPromo, nomPromo);
+        
         printf("╠══════════════════════════════════════════════════════════╣" COLOR_RESET "\n");
         printf(COLOR_GREEN "║ " COLOR_CYAN "1. [MAINTENANCE]" COLOR_RESET "  Réparations & Munitions            " COLOR_GREEN "║\n");
         printf(COLOR_GREEN "║ " COLOR_RED "2. [UPGRADES]   " COLOR_RESET "  Systèmes du Vaisseau               " COLOR_GREEN "║\n");
@@ -28,8 +73,8 @@ void ouvrirMagasin(Vaisseau *joueur) {
             continue;
         }
 
+        // --- CATEGORIE 1 : MAINTENANCE (Prix fixes et bas) ---
         if (categorie == 1) {
-            // --- MAINTENANCE (Inchangé sauf les vérifications) ---
             int choix = 0;
             printf("\n" COLOR_CYAN "─── MAINTENANCE ───" COLOR_RESET "\n");
             printf("1. Réparer Coque (+5)  | 10 Fer. | (Besoin: %d)\n", joueur->coqueMax - joueur->coque);
@@ -50,61 +95,140 @@ void ouvrirMagasin(Vaisseau *joueur) {
                 joueur->ferraille -= 5; joueur->carburant += 1; stockCarburant--;
             }
         } 
-else if (categorie == 2) {
+        
+        // --- CATEGORIE 2 : UPGRADES (Prix bas + Promo ciblée) ---
+        else if (categorie == 2) {
             int choix = 0;
-            printf("\n" COLOR_RED "─── AMÉLIORATIONS DE RANG ───" COLOR_RESET "\n");
+            printf("\n" COLOR_RED "─── ATELIER D'INGÉNIERIE ───" COLOR_RESET "\n");
+
+            // 1. PRIX DE BASE (Réduits par rapport à avant)
+            // Multiplicateurs baissés (20 au lieu de 30, 25 au lieu de 40, etc.)
+            int baseArme = 20 * (joueur->systemeArme.rang + 1);
+            int baseBouclier = 25 * (joueur->systemeBouclier.rang + 1);
+            int baseMoteur = 15 * (joueur->moteurs + 1);
+            int baseCoque = 25 + (joueur->coqueMax / 3); 
+            int baseVisee = 20 + (joueur->precision);
+
+            // 2. APPLICATION DE LA PROMO CIBLÉE
+            // On stocke si l'item est en promo pour l'affichage
+            int isPromo[6] = {0}; 
             
-            int limiteUpgrades = rand() % 3 + 1;
-            if (aVenduUpgrade >= limiteUpgrades) printf(COLOR_YELLOW "!! Ingénieurs Épuisés (Stock limité) !!\n" COLOR_RESET);
+            if (idPromo == 1) { baseArme = baseArme * (100 - pourcentPromo) / 100; isPromo[1] = 1; }
+            if (idPromo == 2) { baseBouclier = baseBouclier * (100 - pourcentPromo) / 100; isPromo[2] = 1; }
+            if (idPromo == 3) { baseMoteur = baseMoteur * (100 - pourcentPromo) / 100; isPromo[3] = 1; }
+            if (idPromo == 4) { baseCoque = baseCoque * (100 - pourcentPromo) / 100; isPromo[4] = 1; }
+            if (idPromo == 5) { baseVisee = baseVisee * (100 - pourcentPromo) / 100; isPromo[5] = 1; }
+
+            // 3. APPLICATION DE L'INFLATION (Si buffer épuisé)
+            int prixArme = PRIX_INFLATION(baseArme, fatigueIngenieur);
+            int prixBouclier = PRIX_INFLATION(baseBouclier, fatigueIngenieur);
+            int prixMoteur = PRIX_INFLATION(baseMoteur, fatigueIngenieur);
+            int prixCoque = PRIX_INFLATION(baseCoque, fatigueIngenieur);
+            int prixVisee = PRIX_INFLATION(baseVisee, fatigueIngenieur);
+
+            // --- AFFICHAGE DU MENU ---
             
-            printf("1. Upgrade %-15s (Mk %d) | 40 Fer.\n", joueur->systemeArme.nom, joueur->systemeArme.rang);
-            printf("2. Upgrade %-15s (Mk %d) | 50 Fer.\n", joueur->systemeBouclier.nom, joueur->systemeBouclier.rang);
-            printf("3. Moteurs (Esquive Lvl %d)            | 30 Fer.\n", joueur->moteurs);
-            // NOUVELLES OPTIONS
-            printf("4. Renforcer Coque (+10 Max)            | 45 Fer.\n");
-            printf("5. Système de Visée (+5 Precision)      | 35 Fer.\n");
+            // Armes
+            printf("1. Upgrade %-15s (-> Mk %d) | ", joueur->systemeArme.nom, joueur->systemeArme.rang + 1);
+            if (isPromo[1]) printf(COLOR_MAGENTA "(-%d%%) " COLOR_RESET, pourcentPromo);
+            printf("%d Fer.\n", prixArme);
+
+            // Boucliers
+            printf("2. Upgrade %-15s (-> Mk %d) | ", joueur->systemeBouclier.nom, joueur->systemeBouclier.rang + 1);
+            if (isPromo[2]) printf(COLOR_MAGENTA "(-%d%%) " COLOR_RESET, pourcentPromo);
+            printf("%d Fer.\n", prixBouclier);
+
+            // Moteurs
+            printf("3. Moteurs (-> Esquive Lvl %d)           | ", joueur->moteurs + 1);
+            if (isPromo[3]) printf(COLOR_MAGENTA "(-%d%%) " COLOR_RESET, pourcentPromo);
+            printf("%d Fer.\n", prixMoteur);
+
+            // Autres
+            printf("4. Renforcer Coque (+10 Max)               | ");
+            if (isPromo[4]) printf(COLOR_MAGENTA "(-%d%%) " COLOR_RESET, pourcentPromo);
+            printf("%d Fer.\n", prixCoque);
+            
+            printf("5. Système de Visée (+5 Precision)         | ");
+            if (isPromo[5]) printf(COLOR_MAGENTA "(-%d%%) " COLOR_RESET, pourcentPromo);
+            printf("%d Fer.\n", prixVisee);
+            
             printf("6. Retour\n > ");
+            
             scanf("%d", &choix);
 
-            if (aVenduUpgrade < limiteUpgrades) {
-                if (choix == 1 && joueur->ferraille >= 40) {
-                    joueur->ferraille -= 40; ameliorerArme(joueur); aVenduUpgrade++;
-                } else if (choix == 2 && joueur->ferraille >= 50) {
-                    joueur->ferraille -= 50; ameliorerBouclier(joueur); aVenduUpgrade++;
-                } else if (choix == 3 && joueur->ferraille >= 30) {
-                    joueur->ferraille -= 30; joueur->moteurs++; aVenduUpgrade++;
+            // --- TRAITEMENT DES ACHATS ---
+            int achatEffectue = 0;
+
+            if (choix == 1) {
+                if (joueur->ferraille >= prixArme) {
+                    joueur->ferraille -= prixArme;
+                    ameliorerArme(joueur);
+                    achatEffectue = 1;
+                } else printf(COLOR_RED "Fonds insuffisants !\n" COLOR_RESET);
+            } 
+            else if (choix == 2) {
+                if (joueur->ferraille >= prixBouclier) {
+                    joueur->ferraille -= prixBouclier;
+                    ameliorerBouclier(joueur);
+                    achatEffectue = 1;
+                } else printf(COLOR_RED "Fonds insuffisants !\n" COLOR_RESET);
+            }
+            else if (choix == 3) {
+                if (joueur->ferraille >= prixMoteur) {
+                    joueur->ferraille -= prixMoteur;
+                    joueur->moteurs++;
                     printf(COLOR_GREEN "✔ Moteurs optimisés.\n" COLOR_RESET);
-                } else if (choix == 4 && joueur->ferraille >= 45) {
-                    joueur->ferraille -= 45;
+                    achatEffectue = 1;
+                } else printf(COLOR_RED "Fonds insuffisants !\n" COLOR_RESET);
+            }
+            else if (choix == 4) {
+                if (joueur->ferraille >= prixCoque) {
+                    joueur->ferraille -= prixCoque;
                     joueur->coqueMax += 10;
-                    joueur->coque += 10; // Soin cohérent
-                    printf(COLOR_GREEN "✔ Coque renforcée : %d/%d !\n" COLOR_RESET, joueur->coque, joueur->coqueMax);
-                    aVenduUpgrade++;
-                } else if (choix == 5 && joueur->ferraille >= 35) {
-                    joueur->ferraille -= 35;
+                    joueur->coque += 10;
+                    printf(COLOR_GREEN "✔ Structure renforcée.\n" COLOR_RESET);
+                    achatEffectue = 1;
+                } else printf(COLOR_RED "Fonds insuffisants !\n" COLOR_RESET);
+            }
+            else if (choix == 5) {
+                if (joueur->ferraille >= prixVisee) {
+                    joueur->ferraille -= prixVisee;
                     joueur->precision += 5;
-                    printf(COLOR_GREEN "✔ Système de visée calibré (+5%% de précision) !\n" COLOR_RESET);
-                    aVenduUpgrade++;
+                    printf(COLOR_GREEN "✔ Ordinateur de visée mis à jour.\n" COLOR_RESET);
+                    achatEffectue = 1;
+                } else printf(COLOR_RED "Fonds insuffisants !\n" COLOR_RESET);
+            }
+
+            // Si un achat a eu lieu, on incrémente le compteur
+            if (achatEffectue) {
+                nombreAchats++;
+                
+                // Si on vient de dépasser le seuil, petit message d'avertissement
+                if (nombreAchats == SEUIL_AVANT_INFLATION) {
+                    printf(COLOR_YELLOW "⚠ Fin des tarifs préférentiels. L'inflation s'appliquera au prochain achat !\n" COLOR_RESET);
+                    SLEEP_MS(1200);
+                } else if (nombreAchats > SEUIL_AVANT_INFLATION) {
+                    printf(COLOR_RED "⚠ Demande forte : Les prix augmentent encore !\n" COLOR_RESET);
+                    SLEEP_MS(800);
                 }
-            } else if (choix != 6) {
-                printf(COLOR_RED "Les ingénieurs sont trop occupés pour d'autres travaux !\n" COLOR_RESET);
             }
         }
+        
+        // --- CATEGORIE 3 : SERVICES ---
         else if (categorie == 3) {
-            // --- SERVICES ---
             int choix = 0;
             printf("\n" COLOR_YELLOW "─── SERVICES DU MARCHÉ NOIR ───" COLOR_RESET "\n");
             printf("1. Vendre 1 Carburant (+4 Ferraille)\n");
-            printf("2. Recycler Arme Actuelle (Gain : Rang * 10)\n");
+            // Prix de revente ajusté pour être intéressant mais pas cassé
+            printf("2. Recycler Arme Actuelle (Gain : Rang * 12)\n"); 
             printf("3. Retour\n > ");
             scanf("%d", &choix);
 
             if (choix == 1 && joueur->carburant > 0) {
                 joueur->carburant--; joueur->ferraille += 4;
             } else if (choix == 2) {
-                int gain = joueur->systemeArme.rang * 10;
+                int gain = joueur->systemeArme.rang * 12;
                 joueur->ferraille += gain;
-                // On remet une arme de base Mk 0
                 strcpy(joueur->systemeArme.nom, "Laser Rouillé");
                 joueur->systemeArme.rang = 0;
                 joueur->systemeArme.efficacite = 1;
@@ -113,11 +237,11 @@ else if (categorie == 2) {
         }
         
         if (categorie == 4) sauvegarderPartie(joueur);
-        if (categorie != 4) SLEEP_MS(1200);
+        if (categorie != 4) SLEEP_MS(800);
     }
 }
-// FONCTION ANNEXE
 
+// ... Les fonctions ameliorerArme et ameliorerBouclier restent identiques ...
 void ameliorerArme(Vaisseau *v) {
     v->systemeArme.rang++;
     v->systemeArme.efficacite += 2; 
@@ -127,8 +251,8 @@ void ameliorerArme(Vaisseau *v) {
 
 void ameliorerBouclier(Vaisseau *v) {
     v->systemeBouclier.rang++;
-    v->systemeBouclier.efficacite += 1; // +1 point de bouclier max
-    v->bouclierActuel = v->systemeBouclier.efficacite; // On recharge à l'achat
+    v->systemeBouclier.efficacite += 1; 
+    v->bouclierActuel = v->systemeBouclier.efficacite; 
     snprintf(v->systemeBouclier.nom, 50, "Bouclier Ion Mk %d", v->systemeBouclier.rang);
     printf(COLOR_GREEN "✔ Nouveau système installé : %s !\n" COLOR_RESET, v->systemeBouclier.nom);
 }
