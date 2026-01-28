@@ -147,51 +147,80 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
         // --- GESTION DES ACTIONS ---
 
         if (choixAction == 1) {
-            // === SOUS-MENU 1 : CHOIX DE LA CIBLE ===
-            printf(COLOR_BLUE "\n--- CIBLE ---\n" COLOR_RESET);
-            printf("1. Coque Centrale  (Normal)\n");
-            printf("2. Syst. Armes     (Visée difficile | Dégâts ennemis réduits)\n");
-            printf("3. Syst. Moteurs   (Visée difficile | Annule esquive)\n");
-            printf(COLOR_WHITE "0. RETOUR\n" COLOR_RESET); // <--- BOUTON RETOUR
+            // --- PRE-CALCUL DES PROBABILITÉS POUR L'AFFICHAGE ---
+            
+            // 1. Esquive de base de l'ennemi (Stats brutes)
+            int baseEsquive = (ennemi->debuffMoteur > 0) ? 0 : 5; // 5% base ou 0% si moteurs HS
+            int esquiveEnnemiBase = baseEsquive + (ennemi->moteurs * 5);
+
+            // 2. Calcul pour la Coque (Tir standard)
+            // Formule : EsquiveEnnemi - PrecisionJoueur
+            int esquiveFinaleCoque = esquiveEnnemiBase - joueur->precision;
+            if (esquiveFinaleCoque < 0) esquiveFinaleCoque = 0;
+            int chanceCoque = 100 - esquiveFinaleCoque;
+            if (chanceCoque > 100) chanceCoque = 100;
+
+            // 3. Calcul pour les Systèmes (Malus de visée +20% esquive)
+            int esquiveFinaleSysteme = (esquiveEnnemiBase + 20) - joueur->precision;
+            if (esquiveFinaleSysteme < 0) esquiveFinaleSysteme = 0;
+            int chanceSysteme = 100 - esquiveFinaleSysteme;
+            if (chanceSysteme < 0) chanceSysteme = 0;
+
+
+            // --- MENU DE CIBLAGE AVEC POURCENTAGES ---
+            printf(COLOR_BLUE "\n--- CHOIX DE LA CIBLE ---\n" COLOR_RESET);
+            
+            // Affichage Coque
+            printf("1. Coque Centrale  [" COLOR_GREEN "%d%%" COLOR_RESET " Toucher]\n", chanceCoque);
+            
+            // Affichage Armes
+            printf("2. Syst. Armes     [" COLOR_YELLOW "%d%%" COLOR_RESET " Toucher] -> " COLOR_RED "Dégâts ennemis réduits" COLOR_RESET "\n", chanceSysteme);
+            
+            // Affichage Moteurs
+            printf("3. Syst. Moteurs   [" COLOR_YELLOW "%d%%" COLOR_RESET " Toucher] -> " COLOR_RED "Annule l'esquive" COLOR_RESET "\n", chanceSysteme);
+            
+            printf(COLOR_WHITE "0. RETOUR\n" COLOR_RESET);
             printf(COLOR_YELLOW "> " COLOR_RESET);
             scanf("%d", &choixCible);
 
-            if (choixCible == 0) continue; // Retourne au début de la boucle 'do'
+            if (choixCible == 0) continue; 
 
-            // === SOUS-MENU 2 : CHOIX DE L'ARME ===
-            printf(COLOR_BLUE "\n--- ARME ---\n" COLOR_RESET);
+            // --- CHOIX DE L'ARME ---
+            printf(COLOR_BLUE "\n--- CHOIX DE L'ARME ---\n" COLOR_RESET);
             printf("1. Canon Laser\n");
             printf("2. Missile (Stock: %d)\n", joueur->missiles);
-            printf(COLOR_WHITE "0. RETOUR\n" COLOR_RESET); // <--- BOUTON RETOUR
+            printf(COLOR_WHITE "0. RETOUR\n" COLOR_RESET);
             printf(COLOR_YELLOW "> " COLOR_RESET);
             scanf("%d", &choixArme);
 
-            if (choixArme == 0) continue; // Retourne au début
+            if (choixArme == 0) continue; 
 
             // === EXECUTION DU TIR ===
             printf(COLOR_BOLD COLOR_RED "\nFeu !" COLOR_RESET);
             SLEEP_MS(600);
 
-            // Calcul Malus Visée
+            // Application du malus réel pour le calcul du résultat
             int malusVisee = (choixCible == 2 || choixCible == 3) ? 20 : 0;
-            int esquiveEnnemi = 15 + (ennemi->moteurs * 5) + malusVisee; 
             
-            // Vérification Touche
-            if (checkEsquive(esquiveEnnemi, ennemi)) { 
+            // On recalcule l'esquive finale utilisée par checkEsquive
+            int esquivePourCalcul = baseEsquive + (ennemi->moteurs * 5) + malusVisee; 
+            
+            // Note : checkEsquive soustrait déjà ta précision, donc on lui envoie l'esquive ennemie totale
+            if (checkEsquive(esquivePourCalcul, joueur)) { 
                 printf(COLOR_RED "\nLe tir passe a cote de la cible visée !\n" COLOR_RESET);
                 SLEEP_MS(800);
             } else {
+                // ... (Le reste du code de dégâts reste identique) ...
                 int degats = 0;
                 int estTouche = 0;
 
-                // Logique Missile vs Laser
                 if (choixArme == 2 && joueur->missiles > 0) {
                     joueur->missiles--;
                     degats = calculerDegats(3 + (joueur->distanceParcourue/5), joueur->moteurs);
                     estTouche = 1;
                     printf("\n" COLOR_RED "MISSILE : Impact direct ! (-%d)" COLOR_RESET "\n", degats);
                 } else if (choixArme == 2) {
-                    printf("Click... Plus de missiles !\n"); // Cas munition vide
+                    printf("Click... Plus de missiles !\n");
                 } else {
                     int degatsBase = joueur->systemeArme.efficacite;
                     if (ennemi->bouclierActuel >= degatsBase) {
@@ -205,7 +234,6 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
                     }
                 }
 
-                // Application des effets
                 if (estTouche) {
                     ennemi->coque -= degats;
                     if (choixCible == 2) {
@@ -218,13 +246,18 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
                     }
                 }
             }
+            // ... (Fin de la gestion touche) ...
+            
             SLEEP_MS(1000);
             
-            // Fin du tour après l'attaque
-            tourFini = 1; 
-            if (joueur->bouclierActuel < joueur->systemeBouclier.efficacite) joueur->bouclierActuel++;
-
-        } 
+            // Recharge automatique légère (+1) si on a attaqué
+            if (joueur->bouclierActuel < joueur->systemeBouclier.efficacite) {
+                joueur->bouclierActuel++;
+                printf(COLOR_BLUE "[SYSTEME] Recharge passive : +1 Bouclier.\n" COLOR_RESET);
+            }
+            
+            tourFini = 1;
+        }
         else if (choixAction == 2) {
             // --- RECHARGE ACTIVE (PUISSANTE) ---
             // On génère entre 2 et 4 points de bouclier
@@ -318,15 +351,22 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
     SLEEP_MS(1500);
 }
 
-bool checkEsquive(int chanceEsquive, Vaisseau *joueur) {
-    int esquiveFinale = chanceEsquive - joueur->precision - (joueur->debuffMoteur * 5);
-    if (esquiveFinale < 0) esquiveFinale = 0;
+bool checkEsquive(int chanceEsquive, Vaisseau *attaquant) {
+    // On récupère l'esquive de la cible (déjà calculée dans tourCombat)
+    // Et on soustrait la précision de celui qui tire
+    int esquiveFinale = chanceEsquive - attaquant->precision;
 
+    // Sécurités basiques
+    if (esquiveFinale < 0) esquiveFinale = 0;
+    if (esquiveFinale > 80) esquiveFinale = 80; // Cap à 80% max
+
+    // Le jet de dé
     if ((rand() % 100) < esquiveFinale) {
-        printf(COLOR_YELLOW "ESQUIVE ! Le tir a manqué la cible.\n" COLOR_RESET);
-        return true; 
+        printf(COLOR_YELLOW "⚡ MANOEUVRE : La cible esquive le tir !\n" COLOR_RESET);
+        return true; // Esquive réussie
     }
-    return false;
+    
+    return false; // Touché
 }
 
 void rechargerBoucliers(Vaisseau *v) {
@@ -448,12 +488,10 @@ int calculerDegats(int puissanceArme, int niveauMoteur) {
 }
 
 void analyserEnnemi(Vaisseau *joueur, Vaisseau *ennemi) {
-    int esquiveBase = 10 + (ennemi->moteurs * 5);
+    int base = (ennemi->debuffMoteur > 0) ? 0 : 5; 
+    int esquiveBase = base + (ennemi->moteurs * 5);
     
-    if (ennemi->debuffMoteur > 0) {
-        esquiveBase = 0;
-    }
-
+    // Calcul réel avec la précision du joueur
     int esquiveReelle = esquiveBase - joueur->precision;
     if (esquiveReelle < 0) esquiveReelle = 0;
 
