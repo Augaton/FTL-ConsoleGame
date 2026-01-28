@@ -21,6 +21,7 @@ void evenementAnomalieSpatiale(Vaisseau *joueur);
 void evenementLoterie(Vaisseau *joueur);
 void evenementPeagePirate(Vaisseau *joueur);
 void evenementErmite(Vaisseau *joueur);
+void evenementStationMercenaire(Vaisseau *joueur);
 
 // ... autres prototypes ...
 void ouvrirMenuDebug(Vaisseau *joueur);

@@ -118,7 +118,7 @@ void menuVoyage(Vaisseau *joueur) {
              }
         }
         else if (choix == 2) {
-            afficherVaisseau(joueur);
+            menuEtatVaisseau(joueur);
         }
         else if (choix == 3) {
             // AJOUT D'UNE CONFIRMATION DE SÉCURITÉ
@@ -302,10 +302,11 @@ void lancerEvenementAleatoire(Vaisseau *joueur) {
         case 2: evenementPluieAsteroides(joueur); break;
         case 3: evenementCapsuleSurvie(joueur); break;
         case 4: evenementAnomalieSpatiale(joueur); break;
-        case 5: evenementDeresse(joueur); break;
+        case 5: evenementDetresse(joueur); break;
         case 6: evenementLoterie(joueur); break;
         case 7: evenementPeagePirate(joueur); break;
         case 8: evenementErmite(joueur); break;
+        case 9: evenementStationMercenaire(joueur); break;
     }
 
     // Une fois l'événement choisi et traité, on remet le temps réel 
@@ -1076,4 +1077,50 @@ void ouvrirMenuDebug(Vaisseau *joueur) {
             attendreJoueur();
         }
     }
+}
+
+void evenementStationMercenaire(Vaisseau *joueur) {
+    printf("\n" COLOR_MAGENTA "[STATION]" COLOR_RESET " Bar de l'espace 'Le Trou Noir'.\n");
+    printf("Un mercenaire Mantis (Soldat) propose ses services.\n");
+    printf("\"Moi tuer pour toi. Toi payer moi.\"\n");
+
+    // Vérifie s'il y a de la place
+    int slotLibre = -1;
+    for(int i=0; i<3; i++) {
+        if (!joueur->equipage[i].estVivant) {
+            slotLibre = i;
+            break;
+        }
+    }
+
+    if (slotLibre == -1) {
+        printf(COLOR_YELLOW "Hélas, votre vaisseau est complet. Vous ne pouvez pas recruter.\n" COLOR_RESET);
+    } else {
+        printf("1. Recruter 'Krog' (Soldat) - Prix : 40 Ferrailles\n");
+        printf("2. Refuser\n");
+        
+        int choix;
+        printf("> ");
+        scanf("%d", &choix);
+
+        if (choix == 1) {
+            if (joueur->ferraille >= 40) {
+                joueur->ferraille -= 40;
+                
+                // Création du soldat
+                strcpy(joueur->equipage[slotLibre].nom, "Krog");
+                joueur->equipage[slotLibre].role = ROLE_SOLDAT;
+                joueur->equipage[slotLibre].pv = 120; // Les soldats sont robustes
+                joueur->equipage[slotLibre].pvMax = 120;
+                joueur->equipage[slotLibre].estVivant = 1;
+                joueur->nbMembres++;
+
+                printf(COLOR_GREEN "Krog monte à bord ! Vos dégâts seront augmentés.\n" COLOR_RESET);
+            } else {
+                printf(COLOR_RED "Pas assez de ferraille ! Krog vous crache dessus.\n" COLOR_RESET);
+            }
+        }
+    }
+    finaliserEvenement(joueur);
+    attendreJoueur();
 }

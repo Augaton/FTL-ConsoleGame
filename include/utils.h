@@ -12,6 +12,7 @@
 #define COLOR_MAGENTA "\x1b[35m"
 #define COLOR_BLUE    "\x1b[34m"
 #define COLOR_WHITE   "\x1b[37m"
+#define COLOR_BLACK   "\x1b[30m"
 
 // Détection du système d'exploitation pour la pause
 #ifdef _WIN32
