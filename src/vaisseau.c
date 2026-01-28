@@ -35,9 +35,6 @@ void afficherVaisseau(Vaisseau *v) {
     printf("\n" COLOR_CYAN "╚══════════════════════════════════════════════════════════╝" COLOR_RESET "\n");
     printf(COLOR_BOLD "         [ Appuyez sur ENTREE pour fermer ]" COLOR_RESET);
     
-    // Nettoyage et attente
-    int c;
-    while ((c = getchar()) != '\n' && c != EOF); 
     getchar(); // Attente réelle de l'entrée
 }
 
