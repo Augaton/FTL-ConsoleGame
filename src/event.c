@@ -143,6 +143,7 @@ void menuVoyage(Vaisseau *joueur) {
 }
 
 void lancerSequenceDeSaut(Vaisseau *joueur) {
+    // Génération des destinations potentielles
     const char* baliseA = inspecterBalise();
     const char* baliseB = inspecterBalise();
     int choixSaut;
@@ -150,22 +151,46 @@ void lancerSequenceDeSaut(Vaisseau *joueur) {
     printf("\n" COLOR_YELLOW "─── CALCUL DES TRAJECTOIRES FTL ───" COLOR_RESET "\n");
     printf("1. "); afficherDestinationColoree(baliseA); printf("\n");
     printf("2. "); afficherDestinationColoree(baliseB); printf("\n");
-    printf(COLOR_YELLOW "\n Destination (1 ou 2) > " COLOR_RESET);
-    scanf("%d", &choixSaut);
+    
+    // --- NOUVELLE OPTION ---
+    printf(COLOR_RED "0. ANNULER LA PROCÉDURE (Retour au cockpit)" COLOR_RESET "\n");
+    
+    printf(COLOR_YELLOW "\n Destination > " COLOR_RESET);
+    
+    // Lecture sécurisée basique
+    if (scanf("%d", &choixSaut) != 1) {
+        int c; while ((c = getchar()) != '\n' && c != EOF);
+        choixSaut = 0; // Par défaut, on annule si entrée invalide
+    }
 
+    // --- GESTION DU RETOUR ---
+    if (choixSaut == 0) {
+        printf(COLOR_CYAN "\nCalculs de trajectoire annulés. Moteurs en veille.\n" COLOR_RESET);
+        SLEEP_MS(800);
+        return; // On quitte la fonction, on revient donc à menuVoyage
+    }
+
+    // Si on est ici, c'est qu'on saute. On définit la destination.
     const char* destination = (choixSaut == 1) ? baliseA : baliseB;
+    // (Petite sécurité : si le joueur tape 3, il ira vers B par défaut, ou tu peux mettre une boucle while)
+    if (choixSaut != 1 && choixSaut != 2) destination = baliseB; 
+
 
     // --- MISE À JOUR DU SECTEUR POUR LA SAUVEGARDE ---
-    // On enregistre où on va pour que le chargement sache quoi relancer
     strncpy(joueur->secteurActuel, destination, 49);
-    joueur->secteurActuel[49] = '\0'; // Sécurité
+    joueur->secteurActuel[49] = '\0'; 
 
     // --- CONSOMMATION DE CARBURANT ---
+    // (Note : J'ai gardé ta logique, mais attention : si le joueur n'a pas de fuel
+    // dans menuVoyage, il ne devrait même pas pouvoir entrer ici normalement)
     if (strcmp(destination, "Nebuleuse (Inconnu - Gratuit)") != 0) {
-        if (joueur->carburant > 0) joueur->carburant--;
+        if (joueur->carburant > 0) {
+            joueur->carburant--;
+        }
         else {
+            // Cas rare si la vérification n'est pas faite avant
             printf(COLOR_RED "\n[ALERTE] Panne de carburant ! Dérive critique...\n" COLOR_RESET);
-            joueur->coque -= 5;
+            joueur->coque -= 2;
             SLEEP_MS(1500);
         }
     }
@@ -181,7 +206,7 @@ void lancerSequenceDeSaut(Vaisseau *joueur) {
     // --- EXÉCUTION ---
     executerEvenement(joueur, joueur->secteurActuel);
 
-    // Après l'événement, on remet le secteur à "REPOS" pour éviter de relancer l'événement au chargement
+    // Retour au repos après l'événement
     strcpy(joueur->secteurActuel, "REPOS");
     sauvegarderPartie(joueur);
 }
