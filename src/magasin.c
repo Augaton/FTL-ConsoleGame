@@ -35,17 +35,17 @@ void ouvrirMagasin(Vaisseau *joueur) {
         }
         
         printf(COLOR_GREEN "╔══════════════════════════════════════════════════════════╗\n");
-        printf("║ " COLOR_BOLD "🛒 DOCK COMMERCIAL" COLOR_RESET COLOR_GREEN "          CRÉDITS: " COLOR_YELLOW "%-5d ⚓" COLOR_GREEN " ║\n", joueur->ferraille);
+        printf("║ " COLOR_BOLD "🛒 DOCK COMMERCIAL" COLOR_RESET COLOR_GREEN "          CRÉDITS: " COLOR_YELLOW "%-7d ⚓" COLOR_GREEN "          ║\n", joueur->ferraille);
         printf("╠══════════════════════════════════════════════════════════╣" COLOR_RESET "\n");
 
         // Message d'ambiance selon l'inflation
         if (fatigueIngenieur > 0) {
-            printf("║ " COLOR_RED "⚠ TARIFS MAJORÉS : Demande élevée (+%d fer/article)" COLOR_GREEN "    ║\n", fatigueIngenieur * 10);
+            printf("║ " COLOR_RED "⚠ TARIFS MAJORÉS : Demande élevée (+%-2d fer/article)" COLOR_GREEN "      ║\n", fatigueIngenieur * 10);
         } else {
             // Affiche combien d'achats restent avant hausse
             int reste = SEUIL_AVANT_INFLATION - nombreAchats;
             if (reste > 0)
-                printf("║ " COLOR_CYAN "ℹ OFFRE : Encore %d achat(s) à prix coûtant !" COLOR_GREEN "            ║\n", reste);
+                printf("║ " COLOR_CYAN "ℹ OFFRE : Encore %-2d achat(s) à prix coûtant !" COLOR_GREEN "            ║\n", reste);
             else
                 printf("║ " COLOR_YELLOW "⚠ ATTENTION : Prochain achat déclenche l'inflation." COLOR_GREEN "     ║\n");
         }
@@ -58,13 +58,13 @@ void ouvrirMagasin(Vaisseau *joueur) {
         else if (idPromo == 4) strcpy(nomPromo, "COQUE");
         else strcpy(nomPromo, "VISÉE");
 
-        printf("║ " COLOR_MAGENTA "★ COUP DE FUSIL : -%d%% sur : %-15s" COLOR_GREEN "        ║\n", pourcentPromo, nomPromo);
+        printf("║ " COLOR_MAGENTA "★ COUP DE FUSIL : -%d%% sur : %-20s" COLOR_GREEN "        ║\n", pourcentPromo, nomPromo);
         
         printf("╠══════════════════════════════════════════════════════════╣" COLOR_RESET "\n");
-        printf(COLOR_GREEN "║ " COLOR_CYAN "1. [MAINTENANCE]" COLOR_RESET "  Réparations & Munitions            " COLOR_GREEN "║\n");
-        printf(COLOR_GREEN "║ " COLOR_RED "2. [UPGRADES]   " COLOR_RESET "  Systèmes du Vaisseau               " COLOR_GREEN "║\n");
-        printf(COLOR_GREEN "║ " COLOR_YELLOW "3. [SERVICES]   " COLOR_RESET "  Marché noir & Recyclage            " COLOR_GREEN "║\n");
-        printf(COLOR_GREEN "║ " COLOR_RESET "4. [QUITTER]    " COLOR_RESET "  Reprendre la navigation            " COLOR_GREEN "║\n");
+        printf(COLOR_GREEN "║ " COLOR_CYAN "1. [MAINTENANCE]" COLOR_RESET "  Réparations & Munitions                " COLOR_GREEN "║\n");
+        printf(COLOR_GREEN "║ " COLOR_RED "2. [UPGRADES]   " COLOR_RESET "  Systèmes du Vaisseau                   " COLOR_GREEN "║\n");
+        printf(COLOR_GREEN "║ " COLOR_YELLOW "3. [SERVICES]   " COLOR_RESET "  Marché noir & Recyclage                " COLOR_GREEN "║\n");
+        printf(COLOR_GREEN "║ " COLOR_RESET "4. [QUITTER]    " COLOR_RESET "  Reprendre la navigation                " COLOR_GREEN "║\n");
         printf(COLOR_GREEN "╚══════════════════════════════════════════════════════════╝" COLOR_RESET "\n");
         
         printf("\n " COLOR_YELLOW "Choisir catégorie > " COLOR_RESET);
@@ -256,3 +256,4 @@ void ameliorerBouclier(Vaisseau *v) {
     snprintf(v->systemeBouclier.nom, 50, "Bouclier Ion Mk %d", v->systemeBouclier.rang);
     printf(COLOR_GREEN "✔ Nouveau système installé : %s !\n" COLOR_RESET, v->systemeBouclier.nom);
 }
+
