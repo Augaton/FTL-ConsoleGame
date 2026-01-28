@@ -1,0 +1,10 @@
+build/*
+savegame.*
+*.log
+*.tmp
+*.bak
+*.o
+*.exe
+.DS_Store
+.vscode/
+.idea/ 
