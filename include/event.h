@@ -12,7 +12,7 @@ void descriptionSecteurVide(Vaisseau *joueur);
 
 void lancerEvenementAleatoire(Vaisseau *joueur);
 
-void evenementDeresse(Vaisseau *joueur);
+void evenementDetresse(Vaisseau *joueur);
 void evenementMarchandAmbulant(Vaisseau *joueur);
 void evenementEpaveDerivante(Vaisseau *joueur);
 void evenementPluieAsteroides(Vaisseau *joueur);
