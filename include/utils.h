@@ -33,4 +33,6 @@ int chargerPartie(Vaisseau *joueur);
 void supprimerSauvegarde();
 void finaliserEvenement(Vaisseau *joueur);
 
+int lireEntierSecurise(int min, int max);
+
 #endif

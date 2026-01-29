@@ -16,30 +16,28 @@ const char* getRoleNom(TypeRole role) {
 
 void initialiserNouvellePartie(Vaisseau *joueur) {
     // --- 1. STATS DE BASE ---
-    joueur->coque = 30;      // Un peu plus confortable pour commencer avec équipage
+    joueur->coque = 30;
     joueur->coqueMax = 30;
     joueur->missiles = 3;
-    joueur->ferraille = 0;   // On commence pauvre, faut mériter son argent !
+    joueur->ferraille = 0;
     joueur->carburant = 12;
     joueur->distanceParcourue = 0;
-    joueur->moteurs = 1;     // Esquive niveau 1
+    joueur->moteurs = 1;
     joueur->precision = 0;
 
-    // Reset des états de combat
+    // Reset états
     joueur->ennemiPresent = 0;       
     joueur->ennemiCoqueActuelle = 0;
     joueur->chargeFTL = 0;
     joueur->maxchargeFTL = 3;
 
-    // Armement de base
+    // Equipement Base
     strcpy(joueur->systemeArme.nom, "Laser Burst Mk1");
     joueur->systemeArme.rang = 1;
-    joueur->systemeArme.efficacite = 2; // Dégâts
-
-    // Bouclier de base
+    joueur->systemeArme.efficacite = 2;
     strcpy(joueur->systemeBouclier.nom, "Bouclier Alpha");
     joueur->systemeBouclier.rang = 1;
-    joueur->systemeBouclier.efficacite = 1; // 1 Bulle de bouclier
+    joueur->systemeBouclier.efficacite = 1;
     joueur->bouclierActuel = 1;
 
     // --- 2. NOM DU VAISSEAU ---
@@ -51,43 +49,45 @@ void initialiserNouvellePartie(Vaisseau *joueur) {
     printf(COLOR_BLUE "\nCommandant, entrez votre nom d'appel :" COLOR_RESET);
     printf(COLOR_YELLOW "\n> " COLOR_RESET);
     
-    // Nettoyage buffer avant saisie si besoin
-    // int c; while ((c = getchar()) != '\n' && c != EOF); 
+    // fgets est déjà sécurisé, il prend tout jusqu'à "Entrée"
+    if (fgets(joueur->nom, sizeof(joueur->nom), stdin) != NULL) {
+        joueur->nom[strcspn(joueur->nom, "\n")] = 0; // Retire le \n
+    } else {
+        strcpy(joueur->nom, "Voyager"); // Nom par défaut si erreur grave de lecture
+    }
     
-    fgets(joueur->nom, sizeof(joueur->nom), stdin);
-    joueur->nom[strcspn(joueur->nom, "\n")] = 0; // Retire le \n
+    // Si l'utilisateur appuie juste sur Entrée sans rien écrire
+    if (strlen(joueur->nom) == 0) strcpy(joueur->nom, "Voyager");
 
     // --- 3. INITIALISATION DE L'ÉQUIPAGE ---
     joueur->nbMembres = 3;
 
-    char bufferNom[30];
-    snprintf(bufferNom, 30, "Cmdt. %.20s", joueur->nom);
+    char bufferNom[50];
+    snprintf(bufferNom, 50, "Cmdt. %.20s", joueur->nom);
+    
+    // Slot 1 (Joueur)
     strcpy(joueur->equipage[0].nom, bufferNom);
     joueur->equipage[0].role = ROLE_PILOTE;
     joueur->equipage[0].pv = 100;
     joueur->equipage[0].pvMax = 100;
     joueur->equipage[0].estVivant = 1;
-    
-    // --- AJOUTER CECI ---
     joueur->equipage[0].xp = 0;    
     joueur->equipage[0].niveau = 0;
 
-    // Slot 2 : WILSON (L'ingénieur)
+    // Slot 2 (Wilson)
     strcpy(joueur->equipage[1].nom, "Wilson");
     joueur->equipage[1].role = ROLE_INGENIEUR;
     joueur->equipage[1].pv = 100;
     joueur->equipage[1].pvMax = 100;
     joueur->equipage[1].estVivant = 1;
-    
-    // --- AJOUTER CECI ---
     joueur->equipage[1].xp = 0;
     joueur->equipage[1].niveau = 0;
 
-    // Slot 3 : VIDE
+    // Slot 3 (Vide)
     strcpy(joueur->equipage[2].nom, "--- LIBRE ---");
     joueur->equipage[2].estVivant = 0;
-    joueur->equipage[2].xp = 0;     // Par sécurité
-    joueur->equipage[2].niveau = 0; // Par sécurité
+    joueur->equipage[2].xp = 0;
+    joueur->equipage[2].niveau = 0;
 
     // --- 4. CHOIX DE LA DURÉE ---
     printf("\n" COLOR_CYAN "--- PARAMÈTRES DE MISSION ---" COLOR_RESET "\n");
@@ -97,15 +97,17 @@ void initialiserNouvellePartie(Vaisseau *joueur) {
     printf("4. Personnalisé\n");
     printf(COLOR_YELLOW "> " COLOR_RESET);
     
-    int mode;
-    if(scanf("%d", &mode) != 1) mode = 2; // Sécurité
+    // Utilisation de la fonction sécurisée (Choix entre 1 et 4)
+    int mode = lireEntierSecurise(1, 4);
     
     if (mode == 1) joueur->distanceObjectif = 10;
     else if (mode == 2) joueur->distanceObjectif = 20;
     else if (mode == 3) joueur->distanceObjectif = 40;
     else {
-        printf("Nombre de secteurs : ");
-        scanf("%d", &joueur->distanceObjectif);
+        printf("Nombre de secteurs (Min: 5, Max: 100) : ");
+        printf(COLOR_YELLOW "\n> " COLOR_RESET);
+        // On sécurise aussi la saisie personnalisée
+        joueur->distanceObjectif = lireEntierSecurise(5, 100);
     }
 
     // --- 5. GESTION DE LA SEED ---
@@ -114,26 +116,26 @@ void initialiserNouvellePartie(Vaisseau *joueur) {
     printf("2. Saisir une Seed manuelle\n");
     printf(COLOR_YELLOW "> " COLOR_RESET);
     
-    int seedMode;
-    scanf("%d", &seedMode);
+    // Utilisation de la fonction sécurisée (Choix entre 1 et 2)
+    int seedMode = lireEntierSecurise(1, 2);
     
     if (seedMode == 2) {
-        printf("Entrez la seed numérique : ");
-        unsigned int seedInput;
-        scanf("%u", &seedInput);
-        joueur->seedSecteur = seedInput;
+        printf("Entrez la seed numérique (Max 9 chiffres) : ");
+        printf(COLOR_YELLOW "\n> " COLOR_RESET);
+        
+        // Cas particulier : on veut lire un grand nombre, on réutilise une logique fgets/sscanf locale
+        // ou on utilise lireEntierSecurise avec un grand MAX si c'est un int classique
+        // Ici on va simplifier en demandant un int positif
+        joueur->seedSecteur = (unsigned int)lireEntierSecurise(1, 2000000000);
     } else {
-        // Génération aléatoire basée sur le temps + le nom
         joueur->seedSecteur = (unsigned int)time(NULL) + strlen(joueur->nom);
     }
 
     printf(COLOR_GREEN "\n>>> SYSTÈMES INITIALISÉS. SEED: %u <<<\n" COLOR_RESET, joueur->seedSecteur);
     SLEEP_MS(1000);
 
-    // Première sauvegarde automatique
     sauvegarderPartie(joueur);
 }
-
 void menuEtatVaisseau(Vaisseau *joueur) {
     int retour = 0;
     while (!retour) {
