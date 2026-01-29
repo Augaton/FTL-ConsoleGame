@@ -20,11 +20,18 @@ typedef struct {
 void ouvrirMagasin(Vaisseau *joueur) {
     int categorie = 0;
     
-    // --- 1. GÉNÉRATION DÉTERMINISTE (ANTI-TRICHE) ---
-    unsigned int seedMagasin = joueur->seedSecteur + (joueur->distanceParcourue * 4242);
+    // --- 1. GÉNÉRATION DÉTERMINISTE ---
+    // On utilise XOR (^) au lieu de (+) pour mélanger les bits, 
+    // et on multiplie par de grands nombres premiers pour casser la linéarité.
+    unsigned int seedMagasin = (joueur->seedSecteur ^ 0x5DEECE66D) * ((joueur->distanceParcourue + 123) * 65537);
     srand(seedMagasin);
     
-    // Stocks
+    // "Chauffage" du générateur : on tire quelques nombres dans le vide
+    // pour s'éloigner de la graine initiale.
+    int chauffe = (rand() % 10) + 5;
+    for(int k=0; k < chauffe; k++) rand(); 
+
+    // --- 2. GÉNÉRATION DES STOCKS ET PROMOS ---
     int stockMissiles = (rand() % 4) + 2;
     int stockCarburant = (rand() % 6) + 5;
 
@@ -32,20 +39,22 @@ void ouvrirMagasin(Vaisseau *joueur) {
     int idPromo = (rand() % 5) + 1; 
     int pourcentPromo = (rand() % 31) + 20;
 
-    // --- GÉNÉRATION DES 3 CANDIDATS À L'EMBAUCHE ---
+    // --- GÉNÉRATION DES CANDIDATS ---
     Candidat recrues[3];
-    char *noms[] = {"Mercredi", "Krog","Zorp", "Lyla", "Brack", "Neo", "Kait", "Jinx", "Rook", "Mordin", "Vex", "Lydia", "Hélydia", "Ismael", "Tara", "Orin", "Sable", "Dax", "Vera", "Kiro", "Zane", "Mira", "Ryn"};
-    
+    // Note : Tu as 23 noms dans ta liste, j'ai corrigé le modulo (23 au lieu de 21)
+    char *noms[] = {"Mercredi", "Krog","Zorp", "Lyla", "Brack", "Neo", "Kait", 
+                    "Jinx", "Rook", "Mordin", "Vex", "Lydia", "Hélydia", "Ismael", 
+                    "Tara", "Orin", "Sable", "Dax", "Vera", "Kiro", "Zane", "Mira", "Ryn"};
+    int nbNoms = 23; 
+
     for(int i=0; i<3; i++) {
-        strcpy(recrues[i].nom, noms[rand() % 21]);
-        recrues[i].role = (rand() % 3); // 0=Pilote, 1=Ingé, 2=Soldat
+        strcpy(recrues[i].nom, noms[rand() % nbNoms]); // Modulo corrigé
+        recrues[i].role = (rand() % 3); 
         recrues[i].pvMax = 100;
         
-        // Le candidat 2 est toujours blessé (Low Cost)
         if (i == 1) recrues[i].pv = 30 + (rand() % 40); 
         else recrues[i].pv = 100;
 
-        // Calcul du prix : Base 50 * Ratio Santé
         recrues[i].prix = (50 * recrues[i].pv) / recrues[i].pvMax;
     }
 
