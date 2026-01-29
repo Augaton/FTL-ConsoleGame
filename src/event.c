@@ -277,7 +277,7 @@ void executerEvenement(Vaisseau *joueur, const char* type) {
     }
 
     if (strcmp(evenementFinal, "Signal Hostile (Combat)") == 0) {
-        Vaisseau ennemi = genererEnnemi(joueur->distanceParcourue, joueur->seedSecteur);
+        Vaisseau ennemi = genererEnnemi(joueur->distanceParcourue, joueur->seedSecteur + rand()%1000);
         lancerCombat(joueur, &ennemi);
     } else if (strcmp(evenementFinal, "Station Commerciale (Magasin)") == 0) {
         ouvrirMagasin(joueur);
@@ -291,7 +291,7 @@ void executerEvenement(Vaisseau *joueur, const char* type) {
 
 void lancerEvenementAleatoire(Vaisseau *joueur) {
     // On fixe l'aléatoire sur la seed du secteur
-    unsigned int seedUnique = joueur->seedSecteur + (joueur->distanceParcourue * 200);
+    unsigned int seedUnique = joueur->seedSecteur + (joueur->distanceParcourue * rand()%1000);
     srand(seedUnique);
 
     int typeEv = rand() % 7; 
@@ -318,7 +318,7 @@ void lancerEvenementAleatoire(Vaisseau *joueur) {
 
 void evenementDetresse(Vaisseau *joueur) {
     // --- SETUP DE LA SEED (Anti-Triche) ---
-    unsigned int seedUnique = joueur->seedSecteur + (joueur->distanceParcourue * 210);
+    unsigned int seedUnique = joueur->seedSecteur + (joueur->distanceParcourue * rand()%1000);
     srand(seedUnique);
 
     printf("\n" COLOR_YELLOW "╔════ [ SIGNAL DE DÉTRESSE ] ═══════════════════════════════════╗\n");
@@ -419,7 +419,7 @@ void evenementDetresse(Vaisseau *joueur) {
 
 void evenementEpaveDerivante(Vaisseau *joueur) {
     // --- SETUP SEED ---
-    unsigned int seedUnique = joueur->seedSecteur + (joueur->distanceParcourue * 330);
+    unsigned int seedUnique = joueur->seedSecteur + (joueur->distanceParcourue * rand()%1000);
     srand(seedUnique);
 
     printf("\n" COLOR_CYAN "╔════ [ ÉPAVE DÉRIVANTE ] ════════════════════════════════╗" COLOR_RESET "\n");
@@ -596,7 +596,7 @@ void evenementAnomalieSpatiale(Vaisseau *joueur) {
     for(int i=0; i<3; i++) { printf("."); fflush(stdout); SLEEP_MS(600); }
     printf("\n");
 
-    unsigned int seedUnique = joueur->seedSecteur + (joueur->distanceParcourue * 440);
+    unsigned int seedUnique = joueur->seedSecteur + (joueur->distanceParcourue * rand()%1000);
     srand(seedUnique);
 
     int r = rand() % 100;
@@ -642,7 +642,7 @@ void evenementCapsuleSurvie(Vaisseau *joueur) {
     scanf("%d", &choix);
 
     if (choix == 1) {
-        unsigned int seedUnique = joueur->seedSecteur + (joueur->distanceParcourue * 550);
+        unsigned int seedUnique = joueur->seedSecteur + (joueur->distanceParcourue * rand()%1000);
         srand(seedUnique);
         int r = rand() % 100;
         if (r < 40) {
@@ -781,7 +781,7 @@ void evenementLoterie(Vaisseau *joueur) {
         joueur->ferraille -= 10;
         printf("\nLancement de la machine");
         for(int i=0; i<3; i++) { printf("."); fflush(stdout); SLEEP_MS(500); }
-        unsigned int seedUnique = joueur->seedSecteur + (joueur->distanceParcourue * 660);
+        unsigned int seedUnique = joueur->seedSecteur + (joueur->distanceParcourue * rand()%1000);
         srand(seedUnique);
         if (rand() % 100 < 45) { 
             printf(COLOR_GREEN " GAGNÉ ! +20 Ferrailles !" COLOR_RESET "\n");
@@ -794,7 +794,7 @@ void evenementLoterie(Vaisseau *joueur) {
         joueur->ferraille -= 50;
         printf("\nLa roue de la fortune tourne");
         for(int i=0; i<3; i++) { printf("."); fflush(stdout); SLEEP_MS(700); }
-        unsigned int seedUnique = joueur->seedSecteur + (joueur->distanceParcourue * 661);
+        unsigned int seedUnique = joueur->seedSecteur + (joueur->distanceParcourue * rand()%1000);
         srand(seedUnique);
         if (rand() % 100 < 25) { 
             printf(COLOR_YELLOW " JACKPOT !!! +150 Ferrailles !" COLOR_RESET "\n");

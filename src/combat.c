@@ -400,7 +400,7 @@ void rechargerBoucliers(Vaisseau *v) {
 
 Vaisseau genererEnnemi(int secteur, unsigned int seed) {
     Vaisseau ennemi;
-    unsigned int seedUnique = seed + (secteur * 100);
+    unsigned int seedUnique = seed + (secteur * rand()%1000);
     srand(seedUnique);
 
     // --- GÉNÉRATEUR DE NOMS PROCÉDURAL ---
