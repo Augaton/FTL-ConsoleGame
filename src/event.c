@@ -293,9 +293,6 @@ void explorerSecteurActuel(Vaisseau *joueur) {
     else {
         lancerEvenementAleatoire(joueur);
     }
-
-    sauvegarderPartie(joueur);
-    attendreJoueur();
 }
 
 void descriptionSecteurVide(Vaisseau *joueur) {

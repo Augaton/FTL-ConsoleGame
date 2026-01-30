@@ -75,9 +75,22 @@ void initialiserNouvellePartie(Vaisseau *joueur);
 
 // Équipage
 void gagnerXP(Membre *m, int montant);
+
+
+// Pilote
 int getBonusEsquive(Vaisseau *v);
-int getBonusIngenieur(Vaisseau *v);
+int getBonusVitesseFTL(Vaisseau *v); // Chance de charger le FTL 2x plus vite
+
+// Ingénieur
+int getBonusRechargeBouclier(Vaisseau *v); // L'ancien bonus
+int getBonusCapaciteBouclier(Vaisseau *v); // Le +1 Slot
+int tenterReparationAutomatique(Vaisseau *v); // La réparation
+
+// Soldat
+int getBonusPrecision(Vaisseau *v);  // Réduction de l'esquive ennemie
+int getBonusCritique(Vaisseau *v);   // Chance de crit augmentée
 int getBonusDegats(Vaisseau *v);
+
 void subirDegatsEquipage(Vaisseau *v);
 const char* getRoleNom(TypeRole role);
 

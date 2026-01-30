@@ -311,34 +311,105 @@ void gagnerXP(Membre *m, int montant) {
 }
 
 int getBonusEsquive(Vaisseau *v) {
+    int esquivebonus = 0;
     for (int i = 0; i < 3; i++) {
         if (v->equipage[i].estVivant && v->equipage[i].role == ROLE_PILOTE) {
             // Niv 0: +10%, Niv 1: +15%, Niv 2: +25%
-            return 10 + (v->equipage[i].niveau * 7); 
+            esquivebonus += 10 + (v->equipage[i].niveau * 7); 
+        }
+    }
+    return esquivebonus;
+}
+
+int getBonusVitesseFTL(Vaisseau *v) {
+    for (int i = 0; i < 3; i++) {
+        if (v->equipage[i].estVivant && v->equipage[i].role == ROLE_PILOTE) {
+            // Niv 0: 20%, Niv 1: 40%, Niv 2: 60% de chance de double charge
+            return 20 * (v->equipage[i].niveau + 1);
         }
     }
     return 0;
 }
 
 int getBonusDegats(Vaisseau *v) {
+    int degatsbonus = 0;
     for (int i = 0; i < 3; i++) {
         if (v->equipage[i].estVivant && v->equipage[i].role == ROLE_SOLDAT) {
             // Niv 0: +1 Dégât, Niv 2: +2 Dégâts (Très fort)
-            return 1 + (v->equipage[i].niveau / 2); 
+            degatsbonus += 1 + v->equipage[i].niveau; 
         }
     }
-    return 0;
+    return degatsbonus;
 }
 
-int getBonusIngenieur(Vaisseau *v) {
+int getBonusPrecision(Vaisseau *v) {
+    int precisionbonus = 0;
+
     for (int i = 0; i < 3; i++) {
-        if (v->equipage[i].estVivant && v->equipage[i].role == ROLE_INGENIEUR) {
-            // Retourne 1 chance sur X de recharger 2 boucliers au lieu d'1
-            // Niv 0: 0%, Niv 1: 30%, Niv 2: 60%
-            if (v->equipage[i].niveau > 0) return 30 * v->equipage[i].niveau;
+        if (v->equipage[i].estVivant && v->equipage[i].role == ROLE_SOLDAT) {
+            // Réduit l'esquive ennemie de : 5% (Niv0), 10% (Niv1), 15% (Niv2)
+            precisionbonus += 5 + (v->equipage[i].niveau * 5);
         }
     }
-    return 0;
+    return precisionbonus;
+}
+
+int getBonusCritique(Vaisseau *v) {
+    int critbonus = 0;
+    
+    for (int i = 0; i < 3; i++) {
+        if (v->equipage[i].estVivant && v->equipage[i].role == ROLE_SOLDAT) {
+            // Ajoute au % de critique : +10% (Niv0), +20% (Niv1), +30% (Niv2)
+            critbonus += 10 + (v->equipage[i].niveau * 10);
+        }
+    }
+    return critbonus;
+}
+
+int getBonusRechargeBouclier(Vaisseau *v) {
+    int bonus = 0;
+    for (int i = 0; i < 3; i++) {
+        if (v->equipage[i].estVivant && v->equipage[i].role == ROLE_INGENIEUR) {
+            // Niv 0: 10%, Niv 1: 30%, Niv 2: 50%
+            bonus += 10 + (v->equipage[i].niveau * 20);
+        }
+    }
+    return bonus;
+}
+
+int getBonusCapaciteBouclier(Vaisseau *v) {
+    int cap = 0;
+    for (int i = 0; i < 3; i++) {
+        // Dès qu'un ingénieur est vivant, on gagne +1 Max Bouclier
+        if (v->equipage[i].estVivant && v->equipage[i].role == ROLE_INGENIEUR) {
+            cap++; 
+        }
+    }
+    return cap;
+}
+
+// 3. NOUVEAU : RÉPARATION EN COMBAT
+int tenterReparationAutomatique(Vaisseau *v) {
+    // Ne répare pas si on est déjà full vie
+    if (v->coque >= v->coqueMax) return 0;
+
+    int reparation = 0;
+
+    for (int i = 0; i < 3; i++) {
+        if (v->equipage[i].estVivant && v->equipage[i].role == ROLE_INGENIEUR) {
+            // Chance de réparation par tour :
+            // Niv 0: 10% | Niv 1: 15% | Niv 2: 25%
+            int chance = 10 + (v->equipage[i].niveau * 7);
+            
+            if ((rand() % 100) < chance) {
+                v->coque++;
+                // On donne un peu d'XP pour le geste
+                gagnerXP(&v->equipage[i], 10);
+                reparation++;
+            }
+        }
+    }
+    return reparation; // Échec
 }
 
 // Gestion équipage

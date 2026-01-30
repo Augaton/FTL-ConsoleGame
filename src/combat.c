@@ -184,7 +184,15 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
             SLEEP_MS(600);
 
             int malusVisee = (choixCible == 2 || choixCible == 3) ? 20 : 0;
-            int esquivePourCalcul = baseEsquive + (ennemi->moteurs * 5) + malusVisee; 
+
+            int bonusPrecision = getBonusPrecision(joueur);
+            
+            // On soustrait le bonus soldat à l'esquive ennemie
+            int esquivePourCalcul = baseEsquive + (ennemi->moteurs * 5) + malusVisee - bonusPrecision; 
+            
+            if (bonusPrecision > 0) {
+                printf("[SOLDAT] Visée assistée : Esquive ennemie -%d%%\n", bonusPrecision);
+            }
             
             if (checkEsquive(esquivePourCalcul, joueur)) { 
                 printf(COLOR_RED "\nLe tir passe a cote de la cible visée !\n" COLOR_RESET);
@@ -193,17 +201,20 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
                 int degats = joueur->systemeArme.efficacite;
 
                 // --- BONUS SOLDAT (Dégâts) ---
-                int bonusSoldat = getBonusDegats(joueur);
-                if (bonusSoldat > 0) {
-                    degats += bonusSoldat;
-                    printf(COLOR_RED "[SOLDAT] Tir optimisé ! (+%d Dégât)\n" COLOR_RESET, bonusSoldat);
+                int bonusSoldatDmg = getBonusDegats(joueur); // Dégât brut
+                int bonusSoldatCrit = getBonusCritique(joueur); // % Critique (Nouveau)
+
+                
+                if (bonusSoldatDmg > 0) {
+                    degats += bonusSoldatDmg;
+                    printf(COLOR_RED "[SOLDAT] Tir optimisé ! (+%d Dégât)\n" COLOR_RESET, bonusSoldatDmg);
                 }
 
                 int estTouche = 0;
 
                 if (choixArme == 2 && joueur->missiles > 0) {
                     joueur->missiles--;
-                    degats += calculerDegats(3 + (joueur->distanceParcourue/5), joueur->moteurs);
+                    degats += calculerDegats(3 + (joueur->distanceParcourue/5), joueur->moteurs, bonusSoldatCrit);
                     estTouche = 1;
                     printf("\n" COLOR_RED "MISSILE : Impact direct ! (-%d)" COLOR_RESET "\n", degats);
                 } else if (choixArme == 2) {
@@ -243,21 +254,32 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
             
             SLEEP_MS(1000);
             
-            // Recharge automatique (Passive)
-            if (joueur->bouclierActuel < joueur->systemeBouclier.efficacite) {
+            int bouclierMaxReel = joueur->systemeBouclier.efficacite + getBonusCapaciteBouclier(joueur);
+
+            // Recharge automatique
+            if (joueur->bouclierActuel < bouclierMaxReel) { // Utilise la nouvelle limite
                 joueur->bouclierActuel++;
                 printf(COLOR_BLUE "[SYSTEME] Recharge passive : +1 Bouclier.\n" COLOR_RESET);
 
-                // --- BONUS INGENIEUR (Passif) ---
-                int chanceBonus = getBonusIngenieur(joueur);
-                if (chanceBonus > 0 && (rand()%100 < chanceBonus) && joueur->bouclierActuel < joueur->systemeBouclier.efficacite) {
+                // Check du bonus "Double Recharge"
+                int chanceBonus = getBonusRechargeBouclier(joueur); // Nouveau nom
+                if (chanceBonus > 0 && (rand()%100 < chanceBonus) && joueur->bouclierActuel < bouclierMaxReel) {
                     joueur->bouclierActuel++;
-                    printf(COLOR_CYAN "[INGENIEUR] Surcharge des boucliers ! (+1 Extra)\n" COLOR_RESET);
+                    printf(COLOR_CYAN "[INGENIEUR] Surcharge des condensateurs ! (+1 Extra)\n" COLOR_RESET);
+                    
+                    // XP Ingénieur
                     for(int i=0; i<3; i++) {
-                        if(joueur->equipage[i].role == ROLE_INGENIEUR) gagnerXP(&joueur->equipage[i], 20);
+                        if(joueur->equipage[i].role == ROLE_INGENIEUR) gagnerXP(&joueur->equipage[i], 15);
                     }
                 }
             }
+
+            if (tenterReparationAutomatique(joueur)) {
+                printf(COLOR_GREEN "[INGENIEUR] \"J'ai colmaté une brèche !\" (+1 Coque)\n" COLOR_RESET);
+                SLEEP_MS(800);
+            }
+
+
             tourFini = 1;
         }
         
@@ -276,13 +298,22 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
                 gainReel, joueur->bouclierActuel, joueur->systemeBouclier.efficacite);
             
             // --- BONUS INGENIEUR (Actif) ---
-            int chanceBonus = getBonusIngenieur(joueur);
+            int chanceBonus = getBonusRechargeBouclier(joueur);
             if (chanceBonus > 0 && (rand()%100 < chanceBonus) && joueur->bouclierActuel < joueur->systemeBouclier.efficacite) {
                 joueur->bouclierActuel++;
                 printf(COLOR_CYAN "[INGENIEUR] Surcharge des boucliers ! (+1 Extra)\n" COLOR_RESET);
                 for(int i=0; i<3; i++) {
                     if(joueur->equipage[i].role == ROLE_INGENIEUR) gagnerXP(&joueur->equipage[i], 20);
                 }
+            }
+
+            joueur->bouclierActuel += regen;
+            
+            // NOUVEAU CALCUL DU MAX
+            int maxTotal = joueur->systemeBouclier.efficacite + getBonusCapaciteBouclier(joueur);
+            
+            if (joueur->bouclierActuel > maxTotal) {
+                joueur->bouclierActuel = maxTotal;
             }
 
             SLEEP_MS(1000);
@@ -297,6 +328,19 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
             } else {
                 joueur->chargeFTL++;
                 printf(COLOR_YELLOW "\nChargement FTL...\n" COLOR_RESET);
+
+                // --- BONUS PILOTE (Vitesse FTL) ---
+                int chanceTurbo = getBonusVitesseFTL(joueur);
+                if (chanceTurbo > 0 && (rand() % 100) < chanceTurbo) {
+                    joueur->chargeFTL++;
+                    printf(COLOR_CYAN "[PILOTE] Calcul de trajectoire optimisé ! (+1 Charge Extra)\n" COLOR_RESET);
+                    
+                    // XP Pilote pour la fuite réussie
+                    for(int i=0; i<3; i++) {
+                        if(joueur->equipage[i].role == ROLE_PILOTE) gagnerXP(&joueur->equipage[i], 10);
+                    }
+                }
+                
                 if (joueur->chargeFTL >= joueur->maxchargeFTL) { ennemi->coque = 0; return; }
                 tourFini = 1;
             }
@@ -354,7 +398,7 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
                 printf(COLOR_YELLOW "\n[CHANCE] Les armes endommagées de l'ennemi tirent faiblement !\n" COLOR_RESET);
             }
             
-            degatsEntrants = calculerDegats(degatsEntrants, ennemi->moteurs);
+            degatsEntrants = calculerDegats(degatsEntrants, ennemi->moteurs, 0);
 
             if (joueur->bouclierActuel >= degatsEntrants) {
                 joueur->bouclierActuel -= degatsEntrants;
@@ -496,16 +540,17 @@ Vaisseau genererBossFinal() {
     return boss;
 }
 
-int calculerDegats(int puissanceArme, int niveauMoteur) {
-    int chanceCritique = 10 + (niveauMoteur * 2);
+int calculerDegats(int puissanceArme, int niveauMoteur, int bonusCritiqueSoldat) {
+    // Base critique : 10% + 2% par moteur + Bonus Soldat
+    int chanceCritique = 10 + (niveauMoteur * 2) + bonusCritiqueSoldat;
+    
     int r = rand() % 100;
     if (r < chanceCritique) {
-        printf(COLOR_YELLOW " !!! COUP CRITIQUE !!! " COLOR_RESET "\n");
+        printf(COLOR_YELLOW " !!! COUP CRITIQUE (Chance: %d%%) !!! " COLOR_RESET "\n", chanceCritique);
         return puissanceArme * 2;
     }
     return puissanceArme;
 }
-
 void analyserEnnemi(Vaisseau *joueur, Vaisseau *ennemi) {
     int base = (ennemi->debuffMoteur > 0) ? 0 : 5; 
     int esquiveBase = base + (ennemi->moteurs * 5);
