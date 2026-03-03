@@ -7,13 +7,20 @@
 
 void afficherEtatCombat(Vaisseau *joueur, Vaisseau *ennemi) {
     effacerEcran();
+
+    char playerName[15];
+    if (strlen(joueur->nom) > 14) {
+        strncpy(playerName, joueur->nom, 14);
+        playerName[11] = '.'; playerName[12] = '.'; playerName[13] = '.';
+        playerName[14] = '\0';
+    } else {
+        strcpy(playerName, joueur->nom);
+    }
     
-    // On définit des largeurs fixes pour chaque colonne
-    // Nom du joueur (15) + vs (4) + Nom ennemi (20) = 39 caractères de contenu
     printf(COLOR_CYAN "╔══════════════════════════════════════════════════╗\n");
 
     printf("║ " COLOR_RESET "%-15s " COLOR_YELLOW "vs" COLOR_RESET "  %-15s " COLOR_MAGENTA, 
-        joueur->nom, ennemi->nom);
+        playerName, ennemi->nom);
 
     afficherBarreFTL(ennemi->chargeFTL);
 
