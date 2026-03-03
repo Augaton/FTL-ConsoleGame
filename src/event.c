@@ -15,9 +15,21 @@ void menuVoyage(Vaisseau *joueur) {
         effacerEcran();
         
         // --- EN-TÊTE ---
+        char playerName[18];
+
+        // Troncature du nom pour l'affichage
+        if (strlen(joueur->nom) > 17) {
+            strncpy(playerName, joueur->nom, 17);
+            playerName[14] = '.'; playerName[15] = '.'; playerName[16] = '.';
+            playerName[17] = '\0';
+        } else {
+            strcpy(playerName, joueur->nom);
+        }
+
+
         printf(COLOR_CYAN "╔══════════════════════════════════════════════════════════╗\n");
         printf("║ " COLOR_BOLD "%-18s" COLOR_RESET COLOR_CYAN "CONSOLE DE NAVIGATION   SECTEUR: %02d/%d ║\n", 
-               joueur->nom, joueur->distanceParcourue, joueur->distanceObjectif);
+               playerName, joueur->distanceParcourue, joueur->distanceObjectif);
         printf("╠══════════════════════════════════════════════════════════╣" COLOR_RESET "\n");
 
         // --- STATUT COQUE ---
