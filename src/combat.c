@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include "interface.h"
+
 
 void afficherEtatCombat(Vaisseau *joueur, Vaisseau *ennemi) {
     effacerEcran();

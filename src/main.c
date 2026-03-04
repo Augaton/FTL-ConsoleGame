@@ -7,6 +7,7 @@
 #include "vaisseau.h"
 #include "combat.h"
 #include "event.h"
+#include "interface.h"
 
 unsigned int genererSeedDepuisTexte(const char *str);
 
@@ -24,6 +25,7 @@ unsigned int genererSeedDepuisTexte(const char *str) {
 // --- MAIN ---
 int main() {
     srand(time(NULL));
+    
     Vaisseau joueur;
     int choixMenu;
 
@@ -64,6 +66,9 @@ int main() {
         initialiserNouvellePartie(&joueur);
     }
 
+    // Initialiser ncurses APRÈS le menu de démarrage (qui utilise scanf)
+    initialiserNCurses();
+
     // --- BOUCLE PRINCIPALE DU JEU ---
     while (joueur.coque > 0 && joueur.distanceParcourue < joueur.distanceObjectif) {
         
@@ -93,6 +98,10 @@ int main() {
     }
 
     printf("\n--- FIN DE LA TRANSMISSION ---\n");
+    
+    // Terminer ncurses proprement
+    terminerNCurses();
+    
     return 0;
 }
 

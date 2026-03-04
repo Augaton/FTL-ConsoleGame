@@ -2,6 +2,7 @@
 #include "combat.h"
 #include "utils.h"
 #include "magasin.h"
+#include "interface.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -95,6 +96,10 @@ static void afficherHUDNavigation(Vaisseau *joueur) {
 
 // --- Traitement seul du choix — retourne 0 pour quitter la boucle ---
 static int traiterChoixNavigation(Vaisseau *joueur, int choix) {
+    if (choix == -1) {
+        // Annulation du menu - on continue simplement
+        return 1;
+    }
     if (choix == 1) {
         if (joueur->carburant > 0) {
             lancerSequenceDeSaut(joueur);
@@ -111,10 +116,14 @@ static int traiterChoixNavigation(Vaisseau *joueur, int choix) {
         menuEtatVaisseau(joueur);
     }
     else if (choix == 4) {
-        char confirm;
-        printf(COLOR_RED "\n[DANGER] Etes-vous sûr de vouloir autodétruire le vaisseau ? (o/n) > " COLOR_RESET);
-        scanf("%c", &confirm);
-        if (confirm == 'o' || confirm == 'O') {
+        // Menu de confirmation pour autodestruction
+        OptionMenu confirmOptions[] = {
+            {"Oui, autodétruire le vaisseau", 1},
+            {"Non, annuler", 0}
+        };
+        int confirm = menuInteractif("ATTENTION - AUTODESTRUCTION", confirmOptions, 2, joueur);
+        
+        if (confirm == 1) {
             printf(COLOR_RED "\nProtocole d'autodestruction engagé...\n" COLOR_RESET);
             SLEEP_MS(1000);
             joueur->coque = 0;
@@ -134,7 +143,16 @@ static int traiterChoixNavigation(Vaisseau *joueur, int choix) {
 void menuVoyage(Vaisseau *joueur) {
     while (joueur->coque > 0) {
         afficherHUDNavigation(joueur);
-        int choix = lireChoix(-1);
+        
+        // Menu des ordres de mission avec ncurses
+        OptionMenu options[] = {
+            {"[1] ENGAGER LE SAUT SPATIAL", 1},
+            {"[2] EXPLORER LE SECTEUR ACTUEL", 2},
+            {"[3] GERER LE VAISSEAU / INVENTAIRE", 3},
+            {"[4] ABANDONNER LA MISSION", 4}
+        };
+        
+        int choix = menuInteractif("ORDRES DE MISSION", options, 4, joueur);
         if (!traiterChoixNavigation(joueur, choix)) break;
     }
 }
@@ -144,27 +162,35 @@ void lancerSequenceDeSaut(Vaisseau *joueur) {
     unsigned int seedSaut = joueur->seedSecteur ^ (joueur->distanceParcourue * 2654435761u);
     srand(seedSaut);
 
-
     const char* baliseA = inspecterBalise();
     const char* baliseB = inspecterBalise();
-    int choixSaut;
 
-    printf("\n" COLOR_YELLOW "─── CALCUL DES TRAJECTOIRES FTL ───" COLOR_RESET "\n");
-    printf("1. "); afficherDestinationColoree(baliseA); printf("\n");
-    printf("2. "); afficherDestinationColoree(baliseB); printf("\n");
-    printf(COLOR_RED "0. ANNULER LA PROCÉDURE (Retour au cockpit)" COLOR_RESET "\n");
-    printf(COLOR_YELLOW "\n Destination > " COLOR_RESET);
+    // Menu de choix des destinations avec ncurses
+    OptionMenu destinationOptions[3];
     
-    choixSaut = lireChoix(0);
+    // Créer les labels pour les destinations (sans caractères spéciaux)
+    char labelA[100], labelB[100];
+    snprintf(labelA, sizeof(labelA), "[A] %s", baliseA);
+    snprintf(labelB, sizeof(labelB), "[B] %s", baliseB);
+    
+    destinationOptions[0].label = labelA;
+    destinationOptions[0].id = 1;
+    destinationOptions[1].label = labelB;
+    destinationOptions[1].id = 2;
+    destinationOptions[2].label = "[ANNULER] Procedure de saut";
+    destinationOptions[2].id = 0;
+    
+    int choixSaut = menuInteractif("TRAJECTOIRES FTL DISPONIBLES", destinationOptions, 3, joueur);
 
     if (choixSaut == 0) {
-        printf(COLOR_CYAN "\nCalculs de trajectoire annulés. Moteurs en veille.\n" COLOR_RESET);
+        terminerNCurses();
+        printf(COLOR_CYAN "\nCalculs de trajectoire annules. Moteurs en veille.\n" COLOR_RESET);
         SLEEP_MS(800);
+        initialiserNCurses();
         return;
     }
 
     const char* destination = (choixSaut == 1) ? baliseA : baliseB;
-    if (choixSaut != 1 && choixSaut != 2) destination = baliseB; 
 
     // --- MISE À JOUR DU SECTEUR POUR LA SAUVEGARDE ---
     strncpy(joueur->secteurActuel, destination, 49);
@@ -176,12 +202,15 @@ void lancerSequenceDeSaut(Vaisseau *joueur) {
         if (joueur->carburant > 0) {
             joueur->carburant--;
         } else {
-            printf(COLOR_RED "\n[ALERTE] Panne de carburant ! Dérive critique...\n" COLOR_RESET);
+            terminerNCurses();
+            printf(COLOR_RED "\n[ALERTE] Panne de carburant ! Derive critique...\n" COLOR_RESET);
             joueur->coque -= 2;
             SLEEP_MS(1500);
+            initialiserNCurses();
         }
     }
 
+    terminerNCurses();
     printf(COLOR_CYAN "\nSaut FTL en cours" COLOR_RESET);
     for(int i=0; i<3; i++) { printf(COLOR_CYAN "." COLOR_RESET); fflush(stdout); SLEEP_MS(300); }
     
