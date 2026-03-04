@@ -228,7 +228,7 @@ void explorerSecteurActuel(Vaisseau *joueur) {
             if (rand() % 2 == 0) {
                 printf(COLOR_RED "[DANGER] Signature hostile détectée ! Des pirates ont triangulé votre position !\n" COLOR_RESET);
                 SLEEP_MS(1500);
-                Vaisseau pirate = genererEnnemi(joueur->distanceParcourue, rand());
+                Vaisseau pirate = genererEnnemi(joueur->distanceParcourue, joueur->seedSecteur ^ (joueur->explorationActuelle * 40503u));
                 lancerCombat(joueur, &pirate);
             } else {
                 printf(COLOR_GREEN "[SUCCÈS] Un cargo commercial a capté votre appel !\n" COLOR_RESET);
@@ -261,7 +261,7 @@ void explorerSecteurActuel(Vaisseau *joueur) {
     if (jet < 35) {
         printf(COLOR_RED "[ALERTE] Patrouille hostile repérée !\n" COLOR_RESET);
         SLEEP_MS(800);
-        Vaisseau ennemi = genererEnnemi(joueur->distanceParcourue, rand());
+        Vaisseau ennemi = genererEnnemi(joueur->distanceParcourue, joueur->seedSecteur ^ (joueur->explorationActuelle * 40503u));
         lancerCombat(joueur, &ennemi);
     }
     else if (jet < 60) {
@@ -318,7 +318,7 @@ void executerEvenement(Vaisseau *joueur, const char* type) {
     }
 
     if (strcmp(evenementFinal, "Signal Hostile (Combat)") == 0) {
-        Vaisseau ennemi = genererEnnemi(joueur->distanceParcourue, joueur->seedSecteur + rand()%1000);
+        Vaisseau ennemi = genererEnnemi(joueur->distanceParcourue, joueur->seedSecteur ^ (joueur->distanceParcourue * 2654435761u));
         lancerCombat(joueur, &ennemi);
     } else if (strcmp(evenementFinal, "Station Commerciale (Magasin)") == 0) {
         ouvrirMagasin(joueur);
@@ -399,7 +399,7 @@ void evenementDetresse(Vaisseau *joueur) {
             printf(COLOR_RED "C'EST UN PIÈGE ! Le transporteur était un leurre holographique !\n" COLOR_RESET);
             printf("Un chasseur pirate sort de l'ombre d'un astéroïde !\n");
             SLEEP_MS(1500);
-            Vaisseau pirate = genererEnnemi(joueur->distanceParcourue, rand());
+            Vaisseau pirate = genererEnnemi(joueur->distanceParcourue, joueur->seedSecteur ^ (joueur->explorationActuelle * 40503u));
             lancerCombat(joueur, &pirate);
         }
     }
@@ -478,7 +478,7 @@ void evenementEpaveDerivante(Vaisseau *joueur) {
             printf("Le croiseur s'illumine. Les armes se verrouillent sur vous !\n");
             SLEEP_MS(1500);
 
-            Vaisseau drone = genererEnnemi(joueur->distanceParcourue + 2, rand());
+            Vaisseau drone = genererEnnemi(joueur->distanceParcourue + 2, joueur->seedSecteur ^ (joueur->distanceParcourue * 2654435761u));
             strcpy(drone.nom, "Proto-Croiseur IA (Endommagé)");
             drone.coque = 15;
             drone.coqueMax = 15;
@@ -673,7 +673,7 @@ void evenementMarchandAmbulant(Vaisseau *joueur) {
         printf("\"Espèce de fou ! Vous allez le regretter !\"\n");
         SLEEP_MS(1000);
 
-        Vaisseau marchand = genererEnnemi(joueur->distanceParcourue, rand());
+        Vaisseau marchand = genererEnnemi(joueur->distanceParcourue, joueur->seedSecteur ^ (joueur->explorationActuelle * 40503u));
         strcpy(marchand.nom, "Transporteur Armé");
         marchand.coqueMax += 5;
         marchand.coque = marchand.coqueMax;
@@ -714,7 +714,7 @@ static void braquageCasino(Vaisseau *joueur) {
     SLEEP_MS(1000);
     
     printf(COLOR_YELLOW "\n--- VAGUE 1/3 : DRONE DE SÉCURITÉ ---\n" COLOR_RESET);
-    Vaisseau drone = genererEnnemi(joueur->distanceParcourue, rand());
+    Vaisseau drone = genererEnnemi(joueur->distanceParcourue, joueur->seedSecteur ^ (joueur->explorationActuelle * 40503u));
     strcpy(drone.nom, "Drone Sécurité Mk1");
     drone.coqueMax = 10; 
     drone.coque = 10;
@@ -731,7 +731,7 @@ static void braquageCasino(Vaisseau *joueur) {
     printf(COLOR_YELLOW "\n--- VAGUE 2/3 : GARDE D'ÉLITE ---\n" COLOR_RESET);
     SLEEP_MS(1000);
     printf("Les portes blindées s'ouvrent, un vaisseau lourd sort du hangar !\n");
-    Vaisseau garde = genererEnnemi(joueur->distanceParcourue + 2, rand()); 
+    Vaisseau garde = genererEnnemi(joueur->distanceParcourue + 2, joueur->seedSecteur ^ (joueur->distanceParcourue * 2654435761u)); 
     strcpy(garde.nom, "Croiseur Blindé Casino");
     garde.coqueMax += 10;
     garde.coque = garde.coqueMax;
@@ -749,7 +749,7 @@ static void braquageCasino(Vaisseau *joueur) {
     printf(COLOR_RED "\n--- VAGUE 3/3 : LE VAISSEAU DU GÉRANT ---\n" COLOR_RESET);
     SLEEP_MS(1000);
     printf("\"Vous m'avez coûté une fortune ! Vous allez le payer de votre sang !\"\n");
-    Vaisseau boss = genererEnnemi(joueur->distanceParcourue + 5, rand());
+    Vaisseau boss = genererEnnemi(joueur->distanceParcourue + 5, joueur->seedSecteur ^ (joueur->distanceParcourue * 2654435761u));
     strcpy(boss.nom, "Yacht de Luxe Armé");
     boss.coqueMax = 40;
     boss.coque = 40;
@@ -861,7 +861,7 @@ void evenementPeagePirate(Vaisseau *joueur) {
         } else {
             printf(COLOR_RED "\"Tu te moques de moi ?! T'as même pas de quoi payer ! A L'ATTAQUE !\"\n" COLOR_RESET);
             SLEEP_MS(1000);
-            Vaisseau pirate = genererEnnemi(joueur->distanceParcourue, rand());
+            Vaisseau pirate = genererEnnemi(joueur->distanceParcourue, joueur->seedSecteur ^ (joueur->explorationActuelle * 40503u));
             lancerCombat(joueur, &pirate);
         }
     }
@@ -877,7 +877,7 @@ void evenementPeagePirate(Vaisseau *joueur) {
     else {
         printf(COLOR_RED "\n\"A L'ABORDAGE !\"\n" COLOR_RESET);
         SLEEP_MS(800);
-        Vaisseau pirate = genererEnnemi(joueur->distanceParcourue, rand());
+        Vaisseau pirate = genererEnnemi(joueur->distanceParcourue, joueur->seedSecteur ^ (joueur->explorationActuelle * 40503u));
         pirate.coque += 5; 
         lancerCombat(joueur, &pirate);
     }

@@ -63,7 +63,6 @@ void lancerCombat(Vaisseau *joueur, Vaisseau *ennemi) {
     }
     
     SLEEP_MS(1000);
-    srand((unsigned int)time(NULL));
 
     // 2. BOUCLE DE COMBAT
     while (joueur->coque > 0 && ennemi->coque > 0) {
@@ -451,7 +450,7 @@ void rechargerBoucliers(Vaisseau *v) {
 
 Vaisseau genererEnnemi(int secteur, unsigned int seed) {
     Vaisseau ennemi;
-    unsigned int seedUnique = seed + (secteur * rand()%1000);
+    unsigned int seedUnique = seed ^ (secteur * 2654435761u);
     srand(seedUnique);
 
     // --- GÉNÉRATEUR DE NOMS PROCÉDURAL ---
