@@ -94,18 +94,13 @@ void menuVoyage(Vaisseau *joueur) {
         }
 
         printf(COLOR_BOLD "  2." COLOR_RESET " EXPLORER LE SECTEUR ACTUEL %s%s" COLOR_RESET "\n", colExplo, statusExplo);
-        
 
         printf(COLOR_BOLD "  3." COLOR_RESET " GÉRER LE VAISSEAU / INVENTAIRE\n");
         printf(COLOR_BOLD "  4." COLOR_RESET " ABANDONNER LA MISSION\n");
         
         printf("\n" COLOR_YELLOW " COMMANDE > " COLOR_RESET);
 
-        if (scanf("%d", &choix) != 1) {
-            int c; while ((c = getchar()) != '\n' && c != EOF);
-            continue;
-        }
-        int c; while ((c = getchar()) != '\n' && c != EOF); 
+        choix = lireChoix(-1);
 
         // --- TRAITEMENT ---
         if (choix == 1) {
@@ -152,30 +147,19 @@ void lancerSequenceDeSaut(Vaisseau *joueur) {
     printf("\n" COLOR_YELLOW "─── CALCUL DES TRAJECTOIRES FTL ───" COLOR_RESET "\n");
     printf("1. "); afficherDestinationColoree(baliseA); printf("\n");
     printf("2. "); afficherDestinationColoree(baliseB); printf("\n");
-    
-    // --- NOUVELLE OPTION ---
     printf(COLOR_RED "0. ANNULER LA PROCÉDURE (Retour au cockpit)" COLOR_RESET "\n");
-    
     printf(COLOR_YELLOW "\n Destination > " COLOR_RESET);
     
-    // Lecture sécurisée basique
-    if (scanf("%d", &choixSaut) != 1) {
-        int c; while ((c = getchar()) != '\n' && c != EOF);
-        choixSaut = 0; // Par défaut, on annule si entrée invalide
-    }
+    choixSaut = lireChoix(0);
 
-    // --- GESTION DU RETOUR ---
     if (choixSaut == 0) {
         printf(COLOR_CYAN "\nCalculs de trajectoire annulés. Moteurs en veille.\n" COLOR_RESET);
         SLEEP_MS(800);
-        return; // On quitte la fonction, on revient donc à menuVoyage
+        return;
     }
 
-    // Si on est ici, c'est qu'on saute. On définit la destination.
     const char* destination = (choixSaut == 1) ? baliseA : baliseB;
-    // (Petite sécurité : si le joueur tape 3, il ira vers B par défaut, ou tu peux mettre une boucle while)
     if (choixSaut != 1 && choixSaut != 2) destination = baliseB; 
-
 
     // --- MISE À JOUR DU SECTEUR POUR LA SAUVEGARDE ---
     strncpy(joueur->secteurActuel, destination, 49);
@@ -183,14 +167,10 @@ void lancerSequenceDeSaut(Vaisseau *joueur) {
     joueur->explorationActuelle = 0;
 
     // --- CONSOMMATION DE CARBURANT ---
-    // (Note : J'ai gardé ta logique, mais attention : si le joueur n'a pas de fuel
-    // dans menuVoyage, il ne devrait même pas pouvoir entrer ici normalement)
     if (strcmp(destination, "Nebuleuse (Inconnu - Gratuit)") != 0) {
         if (joueur->carburant > 0) {
             joueur->carburant--;
-        }
-        else {
-            // Cas rare si la vérification n'est pas faite avant
+        } else {
             printf(COLOR_RED "\n[ALERTE] Panne de carburant ! Dérive critique...\n" COLOR_RESET);
             joueur->coque -= 2;
             SLEEP_MS(1500);
@@ -202,13 +182,9 @@ void lancerSequenceDeSaut(Vaisseau *joueur) {
     
     joueur->distanceParcourue++;
 
-    // --- SAUVEGARDE ---
     sauvegarderPartie(joueur);
-
-    // --- EXÉCUTION ---
     executerEvenement(joueur, joueur->secteurActuel);
 
-    // Retour au repos après l'événement
     joueur->explorationMax = 2 + (rand() % 3);
     strcpy(joueur->secteurActuel, "REPOS");
     sauvegarderPartie(joueur);
@@ -237,10 +213,7 @@ void explorerSecteurActuel(Vaisseau *joueur) {
         printf("2. Ne rien faire (Rester bloqué)\n> ");
         
         int r;
-        if(scanf("%d", &r) != 1) {
-            int c; while ((c = getchar()) != '\n' && c != EOF);
-            r = 2;
-        }
+        r = lireChoix(2);
         
         if (r == 1) {
             printf("Transmission du signal de détresse sur toutes les bandes...\n");
@@ -251,7 +224,6 @@ void explorerSecteurActuel(Vaisseau *joueur) {
                 printf(COLOR_RED "[DANGER] Signature hostile détectée ! Des pirates ont triangulé votre position !\n" COLOR_RESET);
                 SLEEP_MS(1500);
                 Vaisseau pirate = genererEnnemi(joueur->distanceParcourue, rand());
-                // On s'assure que le pirate ne fuit pas trop vite, on veut son fuel
                 lancerCombat(joueur, &pirate);
             } else {
                 printf(COLOR_GREEN "[SUCCÈS] Un cargo commercial a capté votre appel !\n" COLOR_RESET);
@@ -259,7 +231,6 @@ void explorerSecteurActuel(Vaisseau *joueur) {
                 evenementMarchandAmbulant(joueur);
             }
         }
-        // On quitte la fonction ici. Le SOS ne consomme pas de "slot d'exploration".
         return;
     }
 
@@ -271,9 +242,8 @@ void explorerSecteurActuel(Vaisseau *joueur) {
         return;
     }
 
-    // 3. Consommation & Incrémentation
     joueur->carburant--;
-    joueur->explorationActuelle++; // On utilise une charge d'exploration !
+    joueur->explorationActuelle++;
 
     printf(COLOR_YELLOW "\nExploration des environs (-1 ⚡)... [Signal %d/%d]\n" COLOR_RESET, 
            joueur->explorationActuelle, joueur->explorationMax);
@@ -282,19 +252,16 @@ void explorerSecteurActuel(Vaisseau *joueur) {
     printf("\n");
 
     int jet = rand() % 100;
-    
-    // 35% : Combat (Risque du farming)
+
     if (jet < 35) {
         printf(COLOR_RED "[ALERTE] Patrouille hostile repérée !\n" COLOR_RESET);
         SLEEP_MS(800);
         Vaisseau ennemi = genererEnnemi(joueur->distanceParcourue, rand());
         lancerCombat(joueur, &ennemi);
     }
-    // 25% : Calme / Ambiance
     else if (jet < 60) {
         descriptionSecteurVide(joueur);
     }
-    // 40% : Événement spécial (Loot, Marchand, etc.)
     else {
         lancerEvenementAleatoire(joueur);
     }
@@ -313,7 +280,6 @@ void descriptionSecteurVide(Vaisseau *joueur) {
     
     printf("\n" COLOR_CYAN "[EXPLORATION]" COLOR_RESET " %s\n", ambiances[rand() % 7]);
 
-    // --- PETIT BONUS ALÉATOIRE (30% de chance) ---
     int chance = rand() % 100;
     if (chance < 30) {
         SLEEP_MS(500);
@@ -365,8 +331,6 @@ void lancerEvenementAleatoire(Vaisseau *joueur) {
     srand(seedChaos);
     rand(); rand(); // Chauffe le générateur
 
-    // --- 2. CORRECTION DU MODULO ---
-    // Tu as 10 cas (0 à 9). Donc il faut modulo 10.
     int typeEv = rand() % 10; 
 
     switch(typeEv) {
@@ -381,88 +345,69 @@ void lancerEvenementAleatoire(Vaisseau *joueur) {
         case 8: evenementErmite(joueur); break;
         case 9: evenementStationMercenaire(joueur); break;
     }
-
 }
 
 
+// ============================================================
 // LISTE DES ÉVÉNEMENTS
+// ============================================================
 
 void evenementDetresse(Vaisseau *joueur) {
-
-
     printf("\n" COLOR_YELLOW "╔════ [ SIGNAL DE DÉTRESSE ] ═══════════════════════════════════╗\n");
     printf("║ Un transporteur civil est coincé dans un champ d'astéroïdes.  ║\n");
     printf("║ Sa coque est percée et il demande de l'aide immédiate.        ║\n");
     printf("╚═══════════════════════════════════════════════════════════════╝\n" COLOR_RESET);
 
-    // --- OPTIONS ---
+    int aBouclierFort = (joueur->systemeBouclier.rang >= 2);
+    int aMoteursRapides = (joueur->moteurs >= 4);
+
     printf("1. Tenter une manoeuvre de remorquage (Risqué - 60%% Succès)\n");
     
-    // Option Bleue : BOUCLIER
-    int aBouclierFort = (joueur->systemeBouclier.rang >= 2);
-    if (aBouclierFort) {
+    if (aBouclierFort)
         printf(COLOR_CYAN "2. (Bouclier Mk2+) Étendre vos boucliers pour les protéger (100%% Sûr)\n" COLOR_RESET);
-    }
-
-    // Option Bleue : MOTEURS
-    int aMoteursRapides = (joueur->moteurs >= 4);
-    if (aMoteursRapides) {
+    if (aMoteursRapides)
         printf(COLOR_CYAN "3. (Moteurs Lvl 4) Slalom rapide pour les extraire (100%% Sûr)\n" COLOR_RESET);
-    }
     
-    // Option Ressources
     printf("4. Leur envoyer un drone de réparation (Coût: 1 Missile)\n");
     printf("5. Ignorer le signal\n");
 
     printf(COLOR_YELLOW "> " COLOR_RESET);
     int choix;
-    if (scanf("%d", &choix) != 1) {
-        int c; while ((c = getchar()) != '\n' && c != EOF);
-        choix = 5;
-    }
+    choix = lireChoix(5);
 
-    // --- RÉSOLUTION ---
     printf("\n");
     
-    // Cas 1 : Manoeuvre Risquée (Standard)
     if (choix == 1) {
         int jet = rand() % 100;
-        if (jet < 60) { // 60% Réussite
+        if (jet < 60) {
             int reward = 25 + (rand() % 15);
             printf(COLOR_GREEN "Succès ! Vous stabilisez leur vaisseau.\n" COLOR_RESET);
             printf("Ils vous offrent " COLOR_YELLOW "%d Ferrailles" COLOR_RESET " pour vous remercier.\n", reward);
             joueur->ferraille += reward;
         } 
-        else if (jet < 85) { // 25% Échec (Dégâts)
+        else if (jet < 85) {
             printf(COLOR_RED "Échec ! Un astéroïde percute votre flanc pendant la manoeuvre.\n" COLOR_RESET);
             printf("Coque -4\n");
             joueur->coque -= 4;
         } 
-        else { // 15% PIÈGE (Combat !)
+        else {
             printf(COLOR_RED "C'EST UN PIÈGE ! Le transporteur était un leurre holographique !\n" COLOR_RESET);
             printf("Un chasseur pirate sort de l'ombre d'un astéroïde !\n");
             SLEEP_MS(1500);
-            
             Vaisseau pirate = genererEnnemi(joueur->distanceParcourue, rand());
             lancerCombat(joueur, &pirate);
         }
     }
-    
-    // Cas 2 & 3 : Options Bleues (Réussite 100%)
     else if ((choix == 2 && aBouclierFort) || (choix == 3 && aMoteursRapides)) {
         printf(COLOR_CYAN "Grâce à vos systèmes avancés, le sauvetage est une formalité.\n" COLOR_RESET);
         SLEEP_MS(1000);
-        
         int scrap = 30 + (rand() % 20);
         int fuel = 2 + (rand() % 3);
-        
         printf("Le capitaine civil est impressionné : \"Beau pilotage ! Prenez ça.\"\n");
         printf(COLOR_GREEN "+%d Ferrailles, +%d Carburant\n" COLOR_RESET, scrap, fuel);
         joueur->ferraille += scrap;
         joueur->carburant += fuel;
     }
-    
-    // Cas 4 : Utiliser une ressource
     else if (choix == 4) {
         if (joueur->missiles > 0) {
             joueur->missiles--;
@@ -474,7 +419,6 @@ void evenementDetresse(Vaisseau *joueur) {
             printf("Le temps que vous réalisiez, le vaisseau a dérivé trop loin.\n");
         }
     }
-    
     else {
         printf("Vous coupez les communications et continuez votre route.\n");
     }
@@ -484,41 +428,32 @@ void evenementDetresse(Vaisseau *joueur) {
 }
 
 void evenementEpaveDerivante(Vaisseau *joueur) {
-
     printf("\n" COLOR_CYAN "╔════ [ ÉPAVE DÉRIVANTE ] ════════════════════════════════╗" COLOR_RESET "\n");
     printf("║ Les senseurs détectent un Croiseur Automatisé de classe Guerre.║\n");
     printf("║ Il semble inactif et dérive dans le vide.                  ║\n");
     printf("║ Des signatures énergétiques faibles sont détectées.        ║\n");
     printf("╚════════════════════════════════════════════════════════════╝\n");
 
+    int aArmesPuissantes = (joueur->systemeArme.rang >= 2); 
+
     printf("1. Envoyer l'équipe de récupération (Gros gain potentiel / Risque Élevé)\n");
     printf("2. Scanner et récupérer les débris flottants (Gain faible / Sûr)\n");
 
-    // Option Bleue : ARMES
-    int aArmesPuissantes = (joueur->systemeArme.rang >= 2); 
-    if (aArmesPuissantes) {
+    if (aArmesPuissantes)
         printf(COLOR_CYAN "3. (Armes Mk2+) Tir chirurgical pour décrocher la soute (Moyen / Sûr)\n" COLOR_RESET);
-    }
 
-    // Option Ressource : MISSILE
     printf("4. Tirer un missile pour créer une brèche (Coût: 1 Missile)\n");
 
     printf(COLOR_YELLOW "> " COLOR_RESET);
     int choix;
-    if (scanf("%d", &choix) != 1) {
-        int c; while ((c = getchar()) != '\n' && c != EOF);
-        choix = 2; 
-    }
+    choix = lireChoix(2);
 
     printf("\n");
 
-    // --- RÉSOLUTION ---
-    
-    // CAS 1 : RISQUE (Envoyer l'équipage)
     if (choix == 1) {
         int jet = rand() % 100;
         
-        if (jet < 45) { // 45% SUCCÈS
+        if (jet < 45) {
             int scrap = 40 + (rand() % 30);
             int fuel = 2 + (rand() % 4);
             printf(COLOR_GREEN "Succès ! Le système de défense est resté éteint.\n" COLOR_RESET);
@@ -526,31 +461,28 @@ void evenementEpaveDerivante(Vaisseau *joueur) {
             joueur->ferraille += scrap;
             joueur->carburant += fuel;
         } 
-        else if (jet < 80) { // 35% ACCIDENT (Dégâts)
+        else if (jet < 80) {
             printf(COLOR_RED "ALERTE ! Une tourelle de défense s'active brièvement et tire sur la navette !\n" COLOR_RESET);
             printf("Vous récupérez l'équipage de justesse, mais la coque a pris un coup. Coque -5.\n");
             joueur->coque -= 5;
         } 
-        else { // 20% RÉVEIL DU DRONE (Combat Boss)
+        else {
             printf(COLOR_RED "PIÈGE !!! CE N'EST PAS UNE ÉPAVE !\n" COLOR_RESET);
             SLEEP_MS(800);
             printf(COLOR_MAGENTA ">>> DÉTECTION : RÉACTIVATION DU NOYAU IA <<<\n" COLOR_RESET);
             printf("Le croiseur s'illumine. Les armes se verrouillent sur vous !\n");
             SLEEP_MS(1500);
 
-            // Génération d'un ennemi spécifique : Le "Zombie"
-            // Il a peu de vie (car c'est une épave) mais tape fort
-            Vaisseau drone = genererEnnemi(joueur->distanceParcourue + 2, rand()); // +2 pour le rendre fort
+            Vaisseau drone = genererEnnemi(joueur->distanceParcourue + 2, rand());
             strcpy(drone.nom, "Proto-Croiseur IA (Endommagé)");
-            drone.coque = 15; // Coque fragile car "épave"
+            drone.coque = 15;
             drone.coqueMax = 15;
-            drone.systemeArme.efficacite += 2; // Armes très dangereuses
-            drone.moteurs = 0; // Pas d'esquive (moteurs HS)
+            drone.systemeArme.efficacite += 2;
+            drone.moteurs = 0;
 
             printf("\n" COLOR_RED "COMBAT ENGAGÉ CONTRE L'IA !" COLOR_RESET "\n");
             lancerCombat(joueur, &drone);
             
-            // Si le joueur gagne, il aura le loot du combat + un bonus "récupération d'IA"
             if (joueur->coque > 0 && drone.coque <= 0) {
                 printf(COLOR_CYAN "\nVous analysez les restes du processeur IA...\n" COLOR_RESET);
                 printf(COLOR_GREEN "Gain de données : +15 Ferrailles supplémentaires.\n" COLOR_RESET);
@@ -558,16 +490,12 @@ void evenementEpaveDerivante(Vaisseau *joueur) {
             }
         }
     }
-    
-    // CAS 2 : SÉCURITÉ (Scan)
     else if (choix == 2) {
         int scrap = 10 + (rand() % 5);
         printf("Le scan confirme que le vaisseau est en veille active. Trop dangereux d'approcher.\n");
         printf("Vous récupérez juste quelques débris périphériques. +%d Ferrailles.\n", scrap);
         joueur->ferraille += scrap;
     }
-
-    // CAS 3 : OPTION BLEUE (Armes)
     else if (choix == 3 && aArmesPuissantes) {
         int scrap = 30 + (rand() % 10);
         printf(COLOR_CYAN "Tir précis ! Vous détruisez le générateur d'armes du drone avant qu'il ne s'active.\n" COLOR_RESET);
@@ -575,8 +503,6 @@ void evenementEpaveDerivante(Vaisseau *joueur) {
         printf(COLOR_GREEN "Gain : +%d Ferrailles.\n" COLOR_RESET, scrap);
         joueur->ferraille += scrap;
     }
-
-    // CAS 4 : MISSILE
     else if (choix == 4) {
         if (joueur->missiles > 0) {
             joueur->missiles--;
@@ -591,7 +517,6 @@ void evenementEpaveDerivante(Vaisseau *joueur) {
             printf(COLOR_RED "Pas de missiles ! Vous devez abandonner l'opération.\n" COLOR_RESET);
         }
     }
-    
     else {
         printf("Mieux vaut ne pas réveiller le géant qui dort. Vous partez.\n");
     }
@@ -606,19 +531,14 @@ void evenementPluieAsteroides(Vaisseau *joueur) {
 
     printf("\n1. Tenter de passer en manœuvrant (Test Moteurs)\n");
     
-    // OPTION BLEUE : SI BOUCLIER PUISSANT
-    if (joueur->systemeBouclier.efficacite >= 3) {
+    if (joueur->systemeBouclier.efficacite >= 3)
         printf(COLOR_CYAN "2. [BOUCLIER LVL 3] Surcharger les boucliers et foncer (Sûr)\n" COLOR_RESET);
-    }
-    
-    // OPTION BLEUE : SI MISSILES DISPO
-    if (joueur->missiles >= 2) {
+    if (joueur->missiles >= 2)
         printf(COLOR_RED "3. [2 MISSILES] Se frayer un chemin à l'explosif (Gain de temps)\n" COLOR_RESET);
-    }
 
     printf(COLOR_YELLOW "> " COLOR_RESET);
     int choix;
-    scanf("%d", &choix);
+    choix = lireChoix(1);
 
     if (choix == 2 && joueur->systemeBouclier.efficacite >= 3) {
         printf(COLOR_GREEN "\nLes rochers ricochent inoffensivement sur vos boucliers surchargés.\n");
@@ -631,7 +551,6 @@ void evenementPluieAsteroides(Vaisseau *joueur) {
         printf("Passage dégagé sans encombre.\n");
     } 
     else {
-        // Logique classique (Esquive)
         int chanceEsquive = 40 + (joueur->moteurs * 10);
         int r = rand() % 100;
         printf("\nVous tentez de piloter à travers le chaos...\n");
@@ -659,7 +578,6 @@ void evenementAnomalieSpatiale(Vaisseau *joueur) {
     int r = rand() % 100;
 
     if (r < 25) { 
-        // On augmente l'efficacité du système de bouclier de façon permanente
         joueur->systemeBouclier.efficacite += 1;
         joueur->bouclierActuel = joueur->systemeBouclier.efficacite;
         printf(COLOR_YELLOW "✨ SURCHARGE : Les molécules de la coque se densifient. Bouclier Max +1 !" COLOR_RESET "\n");
@@ -670,7 +588,6 @@ void evenementAnomalieSpatiale(Vaisseau *joueur) {
         printf(COLOR_GREEN "⏪ DISTORSION : Le temps s'inverse... Vous avez reculé ! (Secteur -1)" COLOR_RESET "\n");
     }
     else if (r < 75) {
-        // EFFET 3 : Mutation des Ressources
         printf(COLOR_CYAN "💎 ALCHIMIE : La ferraille en soute vibre et se transforme..." COLOR_RESET "\n");
         int gain = (rand() % 15) + 5;
         joueur->ferraille += gain;
@@ -678,7 +595,6 @@ void evenementAnomalieSpatiale(Vaisseau *joueur) {
         printf("Vous trouvez %d Ferraille et 1 Carburant matérialisés dans les couloirs.\n", gain);
     }
     else {
-        // EFFET 4 : Choc de vide (Négatif)
         printf(COLOR_RED "⚠️  REJET : La faille se referme violemment sur votre moteur FTL !" COLOR_RESET "\n");
         joueur->coque -= 4;
         joueur->carburant = (joueur->carburant > 0) ? joueur->carburant - 1 : 0;
@@ -686,7 +602,6 @@ void evenementAnomalieSpatiale(Vaisseau *joueur) {
     }
 
     finaliserEvenement(joueur);
-
     attendreJoueur();
 }
 
@@ -696,7 +611,7 @@ void evenementCapsuleSurvie(Vaisseau *joueur) {
     printf("2. La recycler à distance (Sûr mais peu rentable)\n");
     printf(COLOR_YELLOW "> " COLOR_RESET);
     int choix;
-    scanf("%d", &choix);
+    choix = lireChoix(2);
 
     if (choix == 1) {
         int r = rand() % 100;
@@ -725,32 +640,27 @@ void evenementMarchandAmbulant(Vaisseau *joueur) {
     printf("\n" COLOR_YELLOW "[COMMERCE]" COLOR_RESET " Un marchand Jawa vous hèle sur les ondes.\n");
     printf("\"Besoin de quelque chose, étranger ?\"\n");
     
-    printf("1. Acheter 2 Carburant (10 Ferraille)\n");
-    printf("2. Acheter 3 Missiles (15 Ferraille)\n");
+    printf("1. Acheter %d Carburant (%d Ferraille)\n", MARCHAND_GAIN_CARBURANT, MARCHAND_COUT_CARBURANT);
+    printf("2. Acheter %d Missiles (%d Ferraille)\n", MARCHAND_GAIN_MISSILES, MARCHAND_COUT_MISSILES);
     printf("3. Ignorer\n");
-    // NOUVELLE OPTION D'ATTAQUE
     printf(COLOR_RED "4. Attaquer le marchand (Piraterie)\n" COLOR_RESET);
     
     printf(COLOR_YELLOW "> " COLOR_RESET);
     int choix;
-    // Utilisation de ta méthode de lecture sécurisée ou scanf classique
-    if (scanf("%d", &choix) != 1) {
-        int c; while ((c = getchar()) != '\n' && c != EOF);
-        choix = 0; // Invalide
-    }
+    choix = lireChoix(3);
 
     if (choix == 1) {
-        if (joueur->ferraille >= 10) {
-            joueur->ferraille -= 10;
-            joueur->carburant += 2;
-            printf(COLOR_GREEN "Transaction réussie. (+2 Carburant)" COLOR_RESET "\n");
+        if (joueur->ferraille >= MARCHAND_COUT_CARBURANT) {
+            joueur->ferraille -= MARCHAND_COUT_CARBURANT;
+            joueur->carburant += MARCHAND_GAIN_CARBURANT;
+            printf(COLOR_GREEN "Transaction réussie. (+%d Carburant)" COLOR_RESET "\n", MARCHAND_GAIN_CARBURANT);
         } else printf(COLOR_RED "Pas assez de ferraille !" COLOR_RESET "\n");
     } 
     else if (choix == 2) {
-        if (joueur->ferraille >= 15) {
-            joueur->ferraille -= 15;
-            joueur->missiles += 3;
-            printf(COLOR_GREEN "Transaction réussie. (+3 Missiles)" COLOR_RESET "\n");
+        if (joueur->ferraille >= MARCHAND_COUT_MISSILES) {
+            joueur->ferraille -= MARCHAND_COUT_MISSILES;
+            joueur->missiles += MARCHAND_GAIN_MISSILES;
+            printf(COLOR_GREEN "Transaction réussie. (+%d Missiles)" COLOR_RESET "\n", MARCHAND_GAIN_MISSILES);
         } else printf(COLOR_RED "Pas assez de ferraille !" COLOR_RESET "\n");
     }
     else if (choix == 4) {
@@ -758,16 +668,12 @@ void evenementMarchandAmbulant(Vaisseau *joueur) {
         printf("\"Espèce de fou ! Vous allez le regretter !\"\n");
         SLEEP_MS(1000);
 
-        // On génère un ennemi basé sur le niveau actuel
         Vaisseau marchand = genererEnnemi(joueur->distanceParcourue, rand());
-        
-        // On personnalise l'ennemi pour qu'il ressemble à un marchand
         strcpy(marchand.nom, "Transporteur Armé");
-        marchand.coqueMax += 5;       // Un marchand a souvent une grosse coque (soute)
+        marchand.coqueMax += 5;
         marchand.coque = marchand.coqueMax;
-        marchand.moteurs = 1;         // Souvent lent et lourd
+        marchand.moteurs = 1;
         
-        // On lance le combat
         lancerCombat(joueur, &marchand);
 
         if (joueur->chargeFTL >= joueur->maxchargeFTL) {
@@ -779,23 +685,15 @@ void evenementMarchandAmbulant(Vaisseau *joueur) {
         if (joueur->coque > 0 && marchand.coque <= 0) {
             printf(COLOR_YELLOW "\n[PILLAGE] Vous forcez la soute de l'épave fumante...\n" COLOR_RESET);
             SLEEP_MS(800);
-
-            // Génération du butin "Marchandise"
-            int volFuel = (rand() % 3) + 2;     // 2 à 4 Carburant
-            int volMissiles = (rand() % 3) + 2; // 2 à 4 Missiles
-
+            int volFuel = (rand() % 3) + 2;
+            int volMissiles = (rand() % 3) + 2;
             joueur->carburant += volFuel;
             joueur->missiles += volMissiles;
-
             printf("Vous récupérez : " COLOR_CYAN "+%d Carburant" COLOR_RESET " et " COLOR_RED "+%d Missiles" COLOR_RESET " !\n", 
                    volFuel, volMissiles);
-            
             SLEEP_MS(1500);
         }
-        
-        // Note : Si le joueur gagne, 'lancerCombat' gère déjà le butin (ferraille/arme).
-        // Si le joueur fuit ou meurt, 'lancerCombat' gère aussi la suite.
-        return; // On quitte la fonction car le combat gère la fin de l'event
+        return;
     }
     else {
         printf("Le marchand s'éloigne en maugréant.\n");
@@ -887,58 +785,46 @@ void evenementLoterie(Vaisseau *joueur) {
     printf("\n" COLOR_MAGENTA "🎰 [CASINO SPATIAL]" COLOR_RESET " Une station de divertissement scintille au loin.\n");
     printf("\"Approchez ! Tentez votre chance ! Doublez votre mise ou repartez les soutes vides !\"\n");
     
-    // Vérification argent minimum pour jouer
-    if (joueur->ferraille < 10) {
-        printf("\nLe videur vous regarde de haut : \"Revenez quand vous aurez au moins 10 Ferrailles.\"\n");
+    if (joueur->ferraille < CASINO_MISE_MIN) {
+        printf("\nLe videur vous regarde de haut : \"Revenez quand vous aurez au moins %d Ferrailles.\"\n", CASINO_MISE_MIN);
     } else {
-        printf("\n1. Parier 10 Ferrailles (Gain : x2)\n");
-        printf("2. Parier 50 Ferrailles (Gain : x3 - Difficile)\n");
+        printf("\n1. Parier %d Ferrailles (Gain : x2)\n", CASINO_MISE_MIN);
+        printf("2. Parier %d Ferrailles (Gain : x3 - Difficile)\n", CASINO_MISE_MAX);
     }
-    
     printf("3. Passer votre chemin\n");
-    
-    // --- NOUVELLE OPTION BRAQUAGE ---
     printf(COLOR_RED "4. BRAQUER LE CASINO (Suicidaire - 3 Vagues d'ennemis)\n" COLOR_RESET);
     
     printf(COLOR_YELLOW "> " COLOR_RESET);
-
     int choix;
-    // Sécurisation basique
-    if (scanf("%d", &choix) != 1) {
-        int c; while ((c = getchar()) != '\n' && c != EOF);
-        choix = 3;
-    }
+    choix = lireChoix(3);
 
-    // --- LOGIQUE DES PARIS (Inchangée) ---
-    if (choix == 1 && joueur->ferraille >= 10) {
-        joueur->ferraille -= 10;
+    if (choix == 1 && joueur->ferraille >= CASINO_MISE_MIN) {
+        joueur->ferraille -= CASINO_MISE_MIN;
         printf("\nLancement de la machine");
         for(int i=0; i<3; i++) { printf("."); fflush(stdout); SLEEP_MS(500); }
-        if (rand() % 100 < 45) { 
-            printf(COLOR_GREEN " GAGNÉ ! +20 Ferrailles !" COLOR_RESET "\n");
-            joueur->ferraille += 20;
+        if (rand() % 100 < CASINO_CHANCE_PETIT) { 
+            printf(COLOR_GREEN " GAGNÉ ! +%d Ferrailles !" COLOR_RESET "\n", CASINO_GAIN_PETIT);
+            joueur->ferraille += CASINO_GAIN_PETIT;
         } else {
             printf(COLOR_RED " PERDU... La machine encaisse vos jetons." COLOR_RESET "\n");
         }
     } 
-    else if (choix == 2 && joueur->ferraille >= 50) {
-        joueur->ferraille -= 50;
+    else if (choix == 2 && joueur->ferraille >= CASINO_MISE_MAX) {
+        joueur->ferraille -= CASINO_MISE_MAX;
         printf("\nLa roue de la fortune tourne");
         for(int i=0; i<3; i++) { printf("."); fflush(stdout); SLEEP_MS(700); }
-        if (rand() % 100 < 25) { 
-            printf(COLOR_YELLOW " JACKPOT !!! +150 Ferrailles !" COLOR_RESET "\n");
-            joueur->ferraille += 150;
+        if (rand() % 100 < CASINO_CHANCE_GROS) { 
+            printf(COLOR_YELLOW " JACKPOT !!! +%d Ferrailles !" COLOR_RESET "\n", CASINO_GAIN_GROS);
+            joueur->ferraille += CASINO_GAIN_GROS;
         } else {
             printf(COLOR_RED " RIEN... Le casino gagne toujours à la fin." COLOR_RESET "\n");
         }
-    } 
-    
-    if (choix == 4) {
+    }
+    else if (choix == 4) {
         braquageCasino(joueur);
         return; // braquageCasino gère sa propre fin
     }
-    
-    else if (choix != 1 && choix != 2) {
+    else {
         printf("Vous gardez votre argent pour des réparations plus urgentes.\n");
     }
 
@@ -949,30 +835,27 @@ void evenementLoterie(Vaisseau *joueur) {
 void evenementPeagePirate(Vaisseau *joueur) {
     printf("\n" COLOR_RED "[ALERTE PROXIMITE]" COLOR_RESET " Un croiseur pirate active ses armes.\n");
     printf(COLOR_YELLOW "\"Hé toi ! C'est notre territoire. Paye la taxe ou deviens une épave.\"\n" COLOR_RESET);
-    printf("Demande : 15 Ferrailles.\n");
+    printf("Demande : %d Ferrailles.\n", PEAGE_PIRATE_COUT);
 
-    printf("\n1. Payer 15 Ferrailles (Éviter le combat)\n");
+    printf("\n1. Payer %d Ferrailles (Éviter le combat)\n", PEAGE_PIRATE_COUT);
     printf("2. Refuser et engager le combat !\n");
 
-    // OPTION BLEUE : ARME PUISSANTE
-    if (joueur->systemeArme.rang >= 3) {
+    if (joueur->systemeArme.rang >= 3)
         printf(COLOR_RED "3. [ARME LVL 3] Tirer un coup de semonce (Intimidation)\n" COLOR_RESET);
-    }
 
     printf(COLOR_YELLOW "> " COLOR_RESET);
     int choix;
-    scanf("%d", &choix);
+    choix = lireChoix(2);
 
     if (choix == 1) {
-        if (joueur->ferraille >= 15) {
-            joueur->ferraille -= 15;
+        if (joueur->ferraille >= PEAGE_PIRATE_COUT) {
+            joueur->ferraille -= PEAGE_PIRATE_COUT;
             printf(COLOR_CYAN "\"Sage décision. Filez avant qu'on change d'avis.\"\n" COLOR_RESET);
             finaliserEvenement(joueur);
             attendreJoueur();
         } else {
             printf(COLOR_RED "\"Tu te moques de moi ?! T'as même pas de quoi payer ! A L'ATTAQUE !\"\n" COLOR_RESET);
             SLEEP_MS(1000);
-            // On lance le combat car pas assez d'argent
             Vaisseau pirate = genererEnnemi(joueur->distanceParcourue, rand());
             lancerCombat(joueur, &pirate);
         }
@@ -990,7 +873,6 @@ void evenementPeagePirate(Vaisseau *joueur) {
         printf(COLOR_RED "\n\"A L'ABORDAGE !\"\n" COLOR_RESET);
         SLEEP_MS(800);
         Vaisseau pirate = genererEnnemi(joueur->distanceParcourue, rand());
-        // On booste un peu le pirate car c'est un événement de "boss" mineur
         pirate.coque += 5; 
         lancerCombat(joueur, &pirate);
     }
@@ -1006,7 +888,7 @@ void evenementErmite(Vaisseau *joueur) {
     
     printf(COLOR_YELLOW "> " COLOR_RESET);
     int choix;
-    scanf("%d", &choix);
+    choix = lireChoix(3);
 
     if (choix == 1) {
         int r = rand() % 100;
@@ -1022,11 +904,11 @@ void evenementErmite(Vaisseau *joueur) {
         }
     }
     else if (choix == 2) {
-        if (joueur->ferraille >= 10) {
-            joueur->ferraille -= 10;
-            joueur->coqueMax += 5;
-            joueur->coque += 5;
-            printf(COLOR_GREEN "\nIl soude des plaques de métal étrange sur votre vaisseau. (+5 Coque Max)\n" COLOR_RESET);
+        if (joueur->ferraille >= ERMITE_COUT_RENFORT) {
+            joueur->ferraille -= ERMITE_COUT_RENFORT;
+            joueur->coqueMax += ERMITE_BONUS_COQUE_MAX;
+            joueur->coque += ERMITE_BONUS_COQUE_MAX;
+            printf(COLOR_GREEN "\nIl soude des plaques de métal étrange sur votre vaisseau. (+%d Coque Max)\n" COLOR_RESET, ERMITE_BONUS_COQUE_MAX);
         } else {
             printf("\n\"Pas d'argent, pas de métal !\"\n");
         }
@@ -1061,23 +943,20 @@ void evenementStationMercenaire(Vaisseau *joueur) {
         printf(COLOR_YELLOW "Hélas, votre vaisseau est complet. Vous ne pouvez pas recruter.\n" COLOR_RESET);
     } else {
         char *nomMercenaire = noms[rand() % nbNoms];
-        printf("1. Recruter %s (Soldat) - Prix : 40 Ferrailles\n", nomMercenaire);
+        printf("1. Recruter %s (Soldat) - Prix : %d Ferrailles\n", nomMercenaire, MERCENAIRE_COUT);
         printf("2. Refuser\n");
         
         int choix;
         printf("> ");
-        if (scanf("%d", &choix) != 1) {
-            int c; while ((c = getchar()) != '\n' && c != EOF);
-            choix = 2;
-        }
+        choix = lireChoix(2);
 
         if (choix == 1) {
-            if (joueur->ferraille >= 40) {
-                joueur->ferraille -= 40;
+            if (joueur->ferraille >= MERCENAIRE_COUT) {
+                joueur->ferraille -= MERCENAIRE_COUT;
                 strcpy(joueur->equipage[slotLibre].nom, nomMercenaire);
                 joueur->equipage[slotLibre].role = ROLE_SOLDAT;
-                joueur->equipage[slotLibre].pv = 120;
-                joueur->equipage[slotLibre].pvMax = 120;
+                joueur->equipage[slotLibre].pv = MERCENAIRE_PV;
+                joueur->equipage[slotLibre].pvMax = MERCENAIRE_PV;
                 joueur->equipage[slotLibre].estVivant = 1;
                 joueur->nbMembres++;
                 printf(COLOR_GREEN "%s monte à bord ! Vos dégâts seront augmentés.\n" COLOR_RESET, nomMercenaire);
@@ -1090,12 +969,14 @@ void evenementStationMercenaire(Vaisseau *joueur) {
     attendreJoueur();
 }
 
-// Debug Menu
+// ============================================================
+// MENU DEBUG
+// ============================================================
 
 void ouvrirMenuDebug(Vaisseau *joueur) {
     int choixDebug = 0;
     
-    while (choixDebug != 9) {
+    while (choixDebug != 101) {
         effacerEcran();
         printf(COLOR_RED "╔══════════════════════════════════════════════════╗\n");
         printf("║ 🛠️  MENU DEBUG / GOD MODE                       ║\n");
@@ -1119,7 +1000,7 @@ void ouvrirMenuDebug(Vaisseau *joueur) {
         printf("\n 101. [QUITTER DEBUG]\n");
         printf(COLOR_YELLOW " DEBUG > " COLOR_RESET);
         
-        scanf("%d", &choixDebug);
+        choixDebug = lireChoix(101);
 
         if (choixDebug == 1) {
             joueur->coque = joueur->coqueMax;
@@ -1135,35 +1016,22 @@ void ouvrirMenuDebug(Vaisseau *joueur) {
             joueur->systemeArme.rang += 5;
             joueur->systemeArme.efficacite += 10;
             strcpy(joueur->systemeArme.nom, "LASER DE LA MORT");
-            
             joueur->systemeBouclier.rang += 5;
             joueur->systemeBouclier.efficacite += 5;
             joueur->bouclierActuel = 5;
-            
             joueur->moteurs += 5;
             printf("Vaisseau en mode GOD TIER.\n");
         }
-        else if (choixDebug == 4) {
-            evenementLoterie(joueur);
-        }
-        else if (choixDebug == 5) {
-            evenementMarchandAmbulant(joueur);
-        }
-        else if (choixDebug == 6) {
-            evenementPluieAsteroides(joueur);
-        }
-        else if (choixDebug == 7) {
-            evenementErmite(joueur);
-        }
-        else if (choixDebug == 8) {
-            evenementDetresse(joueur);
-        }
+        else if (choixDebug == 4)   { evenementLoterie(joueur); }
+        else if (choixDebug == 5)   { evenementMarchandAmbulant(joueur); }
+        else if (choixDebug == 6)   { evenementPluieAsteroides(joueur); }
+        else if (choixDebug == 7)   { evenementErmite(joueur); }
+        else if (choixDebug == 8)   { evenementDetresse(joueur); }
         else if (choixDebug == 100) {
             printf(COLOR_RED "INVOCATION DU BOSS...\n" COLOR_RESET);
             SLEEP_MS(1000);
             Vaisseau boss = genererBossFinal();
             lancerCombat(joueur, &boss);
-            // Si on gagne, on reset le flag ennemi pour éviter les bugs
             joueur->ennemiPresent = 0;
         }
 
