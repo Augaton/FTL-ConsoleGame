@@ -29,6 +29,7 @@ int main() {
 
     printf(COLOR_CYAN "╔════════════════════════════════════════╗\n");
     printf("║           🚀 FTL Console 🚀            ║\n");
+    printf("║                V 1.0.0                 ║\n");
     printf("╚════════════════════════════════════════╝\n" COLOR_RESET);
 
     // --- LOGIQUE DE DÉMARRAGE ---
