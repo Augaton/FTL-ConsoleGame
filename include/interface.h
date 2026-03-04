@@ -19,6 +19,11 @@ int menuInteractif(const char *titre, OptionMenu options[], int nbOptions, Vaiss
 // Affiche un dialogue simple avec message
 void afficherDialogueSimple(const char *titre, const char *message);
 
+// Menus de combat
+int menuCombatAction(Vaisseau *v);
+int menuChoixCible(int chanceCoque, int chanceSysteme, Vaisseau *v);
+int menuChoixArme(int missiles, Vaisseau *v);
+
 // Menu oui/non rapide
 int demanderConfirmation(const char *titre, const char *question);
 

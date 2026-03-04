@@ -134,27 +134,20 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
     if (joueur->debuffArme > 0) joueur->debuffArme--;
 
     do {
+        // Affichage d'état (printf) - terminer ncurses avant
+        terminerNCurses();
         afficherEtatCombat(joueur, ennemi);
         
         if (ennemi->debuffArme > 0) printf(COLOR_RED "[INFO] Armes ennemies endommagees (Dégâts réduits)\n" COLOR_RESET);
         if (ennemi->debuffMoteur > 0) printf(COLOR_RED "[INFO] Moteurs ennemis HS (Esquive nulle)\n" COLOR_RESET);
 
-        // --- MENU ACTIONS ---
-        printf(COLOR_CYAN "\n--- VOTRE TOUR ---\n" COLOR_RESET);
-        printf(COLOR_YELLOW "1. ATTAQUER (Systèmes & Armes)\n" COLOR_RESET);
-        printf(COLOR_BLUE "2. RECHARGER BOUCLIERS\n" COLOR_RESET);
-        printf(COLOR_MAGENTA "3. TENTER LA FUITE\n" COLOR_RESET);
-        printf(COLOR_GREEN "4. ANALYSER LE VAISSEAU\n" COLOR_RESET);
-        printf(COLOR_YELLOW "> " COLOR_RESET);
-        
-        if (scanf("%d", &choixAction) != 1) { 
-            int c; while ((c = getchar()) != '\n' && c != EOF); 
-            continue; 
-        }
+        // Réinitialiser ncurses pour le menu
+        initialiserNCurses();
+        choixAction = menuCombatAction(joueur);
 
         // --- 1. ATTAQUER ---
         if (choixAction == 1) {
-            // Calculs Probabilités Affichage
+            // Calculs Probabilités
             int baseEsquive = (ennemi->debuffMoteur > 0) ? 0 : 5; 
             int esquiveEnnemiBase = baseEsquive + (ennemi->moteurs * 5);
 
@@ -168,24 +161,16 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
             int chanceSysteme = 100 - esquiveFinaleSysteme;
             if (chanceSysteme < 0) chanceSysteme = 0;
 
-            // Menu Cible
-            printf(COLOR_BLUE "\n--- CHOIX DE LA CIBLE ---\n" COLOR_RESET);
-            printf("1. Coque Centrale  [" COLOR_GREEN "%d%%" COLOR_RESET " Toucher]\n", chanceCoque);
-            printf("2. Syst. Armes     [" COLOR_YELLOW "%d%%" COLOR_RESET " Toucher] -> " COLOR_RED "Dégâts ennemis réduits" COLOR_RESET "\n", chanceSysteme);
-            printf("3. Syst. Moteurs   [" COLOR_YELLOW "%d%%" COLOR_RESET " Toucher] -> " COLOR_RED "Annule l'esquive" COLOR_RESET "\n", chanceSysteme);
-            printf(COLOR_WHITE "0. RETOUR\n" COLOR_RESET);
-            printf(COLOR_YELLOW "> " COLOR_RESET);
-            scanf("%d", &choixCible);
+            // Menu Cible (ncurses)
+            choixCible = menuChoixCible(chanceCoque, chanceSysteme, joueur);
             if (choixCible == 0) continue; 
 
-            // Menu Arme
-            printf(COLOR_BLUE "\n--- CHOIX DE L'ARME ---\n" COLOR_RESET);
-            printf("1. Canon Laser\n");
-            printf("2. Missile (Stock: %d)\n", joueur->missiles);
-            printf(COLOR_WHITE "0. RETOUR\n" COLOR_RESET);
-            printf(COLOR_YELLOW "> " COLOR_RESET);
-            scanf("%d", &choixArme);
-            if (choixArme == 0) continue; 
+            // Menu Arme (ncurses)
+            choixArme = menuChoixArme(joueur->missiles, joueur);
+            if (choixArme == 0) continue;
+
+            // Afficher résultat du tir (printf)
+            terminerNCurses(); 
 
             // EXECUTION TIR
             printf(COLOR_BOLD COLOR_RED "\nFeu !" COLOR_RESET);

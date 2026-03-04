@@ -419,6 +419,44 @@ void afficherHUD(Vaisseau *v) {
     refresh();
 }
 
+int menuCombatAction(Vaisseau *v) {
+    OptionMenu options[] = {
+        {"[A] ATTAQUER", 1},
+        {"[B] RECHARGER BOUCLIERS", 2},
+        {"[C] TENTER LA FUITE", 3},
+        {"[D] ANALYSER LE VAISSEAU", 4}
+    };
+    return menuInteractif("ACTIONS DISPONIBLES", options, 4, v);
+}
+
+int menuChoixCible(int chanceCoque, int chanceSysteme, Vaisseau *v) {
+    char coque_label[50];
+    char armes_label[50];
+    char moteurs_label[50];
+    
+    snprintf(coque_label, 50, "[A] COQUE CENTRALE [%d%% toucher]", chanceCoque);
+    snprintf(armes_label, 50, "[B] SYST. ARMES [%d%% toucher]", chanceSysteme);
+    snprintf(moteurs_label, 50, "[C] SYST. MOTEURS [%d%% toucher]", chanceSysteme);
+    
+    OptionMenu options[] = {
+        {coque_label, 1},
+        {armes_label, 2},
+        {moteurs_label, 3}
+    };
+    return menuInteractif("CHOIX DE LA CIBLE", options, 3, v);
+}
+
+int menuChoixArme(int missiles, Vaisseau *v) {
+    char missile_label[50];
+    snprintf(missile_label, 50, "[B] MISSILE (Stock: %d)", missiles);
+    
+    OptionMenu options[] = {
+        {"[A] CANON LASER", 1},
+        {missile_label, 2}
+    };
+    return menuInteractif("CHOIX DE L'ARME", options, 2, v);
+}
+
 void ajouterLog(const char* message) {
     static char logs[5][100]; // Garde les 5 derniers messages
     // Logique pour décaler les messages vers le haut
