@@ -361,7 +361,7 @@ void executerEvenement(Vaisseau *joueur, const char* type) {
 
 void lancerEvenementAleatoire(Vaisseau *joueur) {
     // Seed chaotique : temps + adresse mémoire (portable) + seed secteur
-    unsigned int seedChaos = (unsigned int)time(NULL) ^ (uintptr_t)joueur ^ (joueur->seedSecteur << 3);
+    unsigned int seedChaos = (unsigned int)time(NULL) ^ (unsigned long)joueur ^ (joueur->seedSecteur << 3);
     srand(seedChaos);
     rand(); rand(); // Chauffe le générateur
 
@@ -805,6 +805,84 @@ void evenementMarchandAmbulant(Vaisseau *joueur) {
     attendreJoueur();
 }
 
+// --- Sous-fonction extraite de evenementLoterie ---
+static void braquageCasino(Vaisseau *joueur) {
+    printf(COLOR_RED "\n[ALARME] VOUS ACTIVEZ VOS ARMES ! TOUTE LA STATION PASSE EN ALERTE ROUGE !" COLOR_RESET "\n");
+    SLEEP_MS(1000);
+    
+    printf(COLOR_YELLOW "\n--- VAGUE 1/3 : DRONE DE SÉCURITÉ ---\n" COLOR_RESET);
+    Vaisseau drone = genererEnnemi(joueur->distanceParcourue, rand());
+    strcpy(drone.nom, "Drone Sécurité Mk1");
+    drone.coqueMax = 10; 
+    drone.coque = 10;
+    lancerCombat(joueur, &drone);
+
+    if (joueur->coque <= 0) return;
+    if (joueur->chargeFTL >= joueur->maxchargeFTL) {
+        printf(COLOR_YELLOW "\nVous avez pris la fuite ! Le braquage est annulé.\n" COLOR_RESET);
+        joueur->chargeFTL = 0;
+        finaliserEvenement(joueur);
+        return;
+    }
+
+    printf(COLOR_YELLOW "\n--- VAGUE 2/3 : GARDE D'ÉLITE ---\n" COLOR_RESET);
+    SLEEP_MS(1000);
+    printf("Les portes blindées s'ouvrent, un vaisseau lourd sort du hangar !\n");
+    Vaisseau garde = genererEnnemi(joueur->distanceParcourue + 2, rand()); 
+    strcpy(garde.nom, "Croiseur Blindé Casino");
+    garde.coqueMax += 10;
+    garde.coque = garde.coqueMax;
+    garde.systemeArme.efficacite += 1;
+    lancerCombat(joueur, &garde);
+
+    if (joueur->coque <= 0) return;
+    if (joueur->chargeFTL >= joueur->maxchargeFTL) {
+        printf(COLOR_YELLOW "\nVous abandonnez le butin et fuyez vers l'hyper-espace !\n" COLOR_RESET);
+        joueur->chargeFTL = 0;
+        finaliserEvenement(joueur);
+        return;
+    }
+
+    printf(COLOR_RED "\n--- VAGUE 3/3 : LE VAISSEAU DU GÉRANT ---\n" COLOR_RESET);
+    SLEEP_MS(1000);
+    printf("\"Vous m'avez coûté une fortune ! Vous allez le payer de votre sang !\"\n");
+    Vaisseau boss = genererEnnemi(joueur->distanceParcourue + 5, rand());
+    strcpy(boss.nom, "Yacht de Luxe Armé");
+    boss.coqueMax = 40;
+    boss.coque = 40;
+    boss.systemeBouclier.efficacite += 1;
+    lancerCombat(joueur, &boss);
+
+    if (joueur->coque <= 0) return;
+    if (joueur->chargeFTL >= joueur->maxchargeFTL) {
+        printf(COLOR_YELLOW "\nSi près du but... Mais la vie est plus importante. Vous fuyez.\n" COLOR_RESET);
+        joueur->chargeFTL = 0;
+        finaliserEvenement(joueur);
+        return;
+    }
+
+    printf(COLOR_YELLOW "\n============================================\n");
+    printf("       BRAQUAGE RÉUSSI ! LE CASINO EST À VOUS       \n");
+    printf("============================================" COLOR_RESET "\n");
+    SLEEP_MS(1000);
+    
+    int butinScrap = 200 + (rand() % 100);
+    int butinFuel = 5 + (rand() % 5);
+    int butinMissile = 5 + (rand() % 5);
+    
+    printf("Vous forcez le coffre principal...\n");
+    printf(COLOR_GREEN "+%d Ferrailles\n+%d Carburant\n+%d Missiles\n" COLOR_RESET,
+           butinScrap, butinFuel, butinMissile);
+
+    joueur->ferraille += butinScrap;
+    joueur->carburant += butinFuel;
+    joueur->missiles += butinMissile;
+    
+    printf("\nVous utilisez les docks du casino pour effectuer des réparations d'urgence (+10 Coque).\n");
+    joueur->coque += 10;
+    if(joueur->coque > joueur->coqueMax) joueur->coque = joueur->coqueMax;
+}
+
 void evenementLoterie(Vaisseau *joueur) {
     printf("\n" COLOR_MAGENTA "🎰 [CASINO SPATIAL]" COLOR_RESET " Une station de divertissement scintille au loin.\n");
     printf("\"Approchez ! Tentez votre chance ! Doublez votre mise ou repartez les soutes vides !\"\n");
@@ -855,98 +933,9 @@ void evenementLoterie(Vaisseau *joueur) {
         }
     } 
     
-if (choix == 4) {
-        printf(COLOR_RED "\n[ALARME] VOUS ACTIVEZ VOS ARMES ! TOUTE LA STATION PASSE EN ALERTE ROUGE !" COLOR_RESET "\n");
-        SLEEP_MS(1000);
-        
-        // --- VAGUE 1 : SÉCURITÉ DE BASE ---
-        printf(COLOR_YELLOW "\n--- VAGUE 1/3 : DRONE DE SÉCURITÉ ---\n" COLOR_RESET);
-        Vaisseau drone = genererEnnemi(joueur->distanceParcourue, rand());
-        strcpy(drone.nom, "Drone Sécurité Mk1");
-        drone.coqueMax = 10; 
-        drone.coque = 10;
-        
-        lancerCombat(joueur, &drone);
-
-        // VERIFICATION VAGUE 1
-        if (joueur->coque <= 0) return; // Tu es mort
-
-        // Si le FTL est chargé au max, c'est que tu as fui le combat
-        if (joueur->chargeFTL >= joueur->maxchargeFTL) {
-            printf(COLOR_YELLOW "\nVous avez pris la fuite ! Le braquage est annulé.\n" COLOR_RESET);
-            joueur->chargeFTL = 0;      // IMPORTANT : On vide la charge
-            finaliserEvenement(joueur); 
-            return;
-        }
-
-        // --- VAGUE 2 : GARDE D'ÉLITE ---
-        printf(COLOR_YELLOW "\n--- VAGUE 2/3 : GARDE D'ÉLITE ---\n" COLOR_RESET);
-        SLEEP_MS(1000);
-        printf("Les portes blindées s'ouvrent, un vaisseau lourd sort du hangar !\n");
-        
-        Vaisseau garde = genererEnnemi(joueur->distanceParcourue + 2, rand()); 
-        strcpy(garde.nom, "Croiseur Blindé Casino");
-        garde.coqueMax += 10;
-        garde.coque = garde.coqueMax;
-        garde.systemeArme.efficacite += 1;
-        
-        lancerCombat(joueur, &garde);
-
-        // VERIFICATION VAGUE 2
-        if (joueur->coque <= 0) return;
-
-        if (joueur->chargeFTL >= joueur->maxchargeFTL) {
-            printf(COLOR_YELLOW "\nVous abandonnez le butin et fuyez vers l'hyper-espace !\n" COLOR_RESET);
-            joueur->chargeFTL = 0;
-            finaliserEvenement(joueur);
-            return;
-        }
-
-        // --- VAGUE 3 : LE BOSS DU CASINO ---
-        printf(COLOR_RED "\n--- VAGUE 3/3 : LE VAISSEAU DU GÉRANT ---\n" COLOR_RESET);
-        SLEEP_MS(1000);
-        printf("\"Vous m'avez coûté une fortune ! Vous allez le payer de votre sang !\"\n");
-
-        Vaisseau boss = genererEnnemi(joueur->distanceParcourue + 5, rand());
-        strcpy(boss.nom, "Yacht de Luxe Armé");
-        boss.coqueMax = 40;
-        boss.coque = 40;
-        boss.systemeBouclier.efficacite += 1;
-        
-        lancerCombat(joueur, &boss);
-
-        // VERIFICATION VAGUE 3
-        if (joueur->coque <= 0) return;
-
-        if (joueur->chargeFTL >= joueur->maxchargeFTL) {
-            printf(COLOR_YELLOW "\nSi près du but... Mais la vie est plus importante. Vous fuyez.\n" COLOR_RESET);
-            joueur->chargeFTL = 0;
-            finaliserEvenement(joueur);
-            return;
-        }
-
-        // --- VICTOIRE TOTALE ---
-        printf(COLOR_YELLOW "\n============================================\n");
-        printf("       BRAQUAGE RÉUSSI ! LE CASINO EST À VOUS       \n");
-        printf("============================================" COLOR_RESET "\n");
-        SLEEP_MS(1000);
-        
-        int butinScrap = 200 + (rand() % 100);
-        int butinFuel = 5 + (rand() % 5);
-        int butinMissile = 5 + (rand() % 5);
-        
-        printf("Vous forcez le coffre principal...\n");
-        printf(COLOR_GREEN "+%d Ferrailles\n", butinScrap);
-        printf("+%d Carburant\n", butinFuel);
-        printf("+%d Missiles\n" COLOR_RESET, butinMissile);
-
-        joueur->ferraille += butinScrap;
-        joueur->carburant += butinFuel;
-        joueur->missiles += butinMissile;
-        
-        printf("\nVous utilisez les docks du casino pour effectuer des réparations d'urgence (+10 Coque).\n");
-        joueur->coque += 10;
-        if(joueur->coque > joueur->coqueMax) joueur->coque = joueur->coqueMax;
+    if (choix == 4) {
+        braquageCasino(joueur);
+        return; // braquageCasino gère sa propre fin
     }
     
     else if (choix != 1 && choix != 2) {
