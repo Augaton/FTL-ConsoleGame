@@ -37,4 +37,33 @@ void finaliserEvenement(Vaisseau *joueur);
 int lireEntierSecurise(int min, int max);
 int lireChoix(int defaut);
 
+// ============================================================
+// CONSTANTES DE JEU
+// ============================================================
+
+// --- Marchand ambulant ---
+#define MARCHAND_COUT_CARBURANT   10
+#define MARCHAND_COUT_MISSILES    15
+#define MARCHAND_GAIN_CARBURANT    2
+#define MARCHAND_GAIN_MISSILES     3
+
+// --- Péage pirate ---
+#define PEAGE_PIRATE_COUT         15
+
+// --- Station mercenaire ---
+#define MERCENAIRE_COUT           40
+#define MERCENAIRE_PV            120
+
+// --- Casino ---
+#define CASINO_MISE_MIN           10
+#define CASINO_MISE_MAX           50
+#define CASINO_GAIN_PETIT         20
+#define CASINO_GAIN_GROS         150
+#define CASINO_CHANCE_PETIT       45   // % de gagner la petite mise
+#define CASINO_CHANCE_GROS        25   // % de gagner la grosse mise
+
+// --- Ermite ---
+#define ERMITE_COUT_RENFORT       10
+#define ERMITE_BONUS_COQUE_MAX     5
+
 #endif
