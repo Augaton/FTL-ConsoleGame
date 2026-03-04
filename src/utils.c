@@ -61,8 +61,6 @@ void afficherVictoire(Vaisseau *joueur) {
 
 void attendreJoueur() {
     printf(COLOR_CYAN "\n[ Appuyez sur ENTREE pour continuer ]" COLOR_RESET);
-    int c;
-    while ((c = getchar()) != '\n' && c != EOF); // Nettoie le buffer
     getchar();
 }
 
@@ -137,6 +135,7 @@ int lireChoix(int defaut) {
         int c; while ((c = getchar()) != '\n' && c != EOF);
         return defaut;
     }
+    int c; while ((c = getchar()) != '\n' && c != EOF); // vide le \n après succès
     return choix;
 }
 
