@@ -683,7 +683,7 @@ void evenementMarchandAmbulant(Vaisseau *joueur) {
         }
 
         if (joueur->coque > 0 && marchand.coque <= 0) {
-            printf(COLOR_YELLOW "\n[PILLAGE] Vous forcez la soute de l'épave fumante...\n" COLOR_RESET);
+            printf(COLOR_YELLOW "\n[PILLAGE] Vous forcez la soute de l'épave encore fumante...\n" COLOR_RESET);
             SLEEP_MS(800);
             int volFuel = (rand() % 3) + 2;
             int volMissiles = (rand() % 3) + 2;
@@ -705,7 +705,7 @@ void evenementMarchandAmbulant(Vaisseau *joueur) {
 
 // --- Sous-fonction extraite de evenementLoterie ---
 static void braquageCasino(Vaisseau *joueur) {
-    printf(COLOR_RED "\n[ALARME] VOUS ACTIVEZ VOS ARMES ! TOUTE LA STATION PASSE EN ALERTE ROUGE !" COLOR_RESET "\n");
+    printf(COLOR_RED "\n[ALARME] Vous activez vos armes et toute la station passe en alerte rouge !\n" COLOR_RESET);
     SLEEP_MS(1000);
     
     printf(COLOR_YELLOW "\n--- VAGUE 1/3 : DRONE DE SÉCURITÉ ---\n" COLOR_RESET);
