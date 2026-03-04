@@ -112,25 +112,32 @@ void finaliserEvenement(Vaisseau *joueur) {
 // Fonction utilitaire pour lire un entier de manière robuste
 int lireEntierSecurise(int min, int max) {
     int valeur;
-    char buffer[100]; // On lit une ligne de texte pour éviter les bugs de scanf
+    char buffer[100];
 
     while (1) {
-        // On lit toute la ligne (jusqu'à Entrée)
         if (fgets(buffer, sizeof(buffer), stdin) != NULL) {
-            // On essaie de convertir le texte en nombre
-            // %d capture le nombre, le reste est ignoré
             if (sscanf(buffer, "%d", &valeur) == 1) {
-                // Si c'est un nombre valide, on vérifie les bornes
                 if (valeur >= min && valeur <= max) {
-                    return valeur; // C'est gagné, on renvoie la valeur
+                    return valeur;
                 }
             }
         }
         
-        // Si on arrive ici, c'est que l'entrée était mauvaise
         printf(COLOR_RED "⚠ Entrée invalide. Veuillez taper un nombre entre %d et %d : " COLOR_RESET, min, max);
         printf(COLOR_YELLOW "> " COLOR_RESET);
     }
+}
+
+// Lit un choix de menu depuis stdin.
+// Retourne la valeur saisie, ou `defaut` si l'entrée est invalide.
+// Ne vérifie pas de bornes — c'est à l'appelant de gérer les cas inattendus.
+int lireChoix(int defaut) {
+    int choix;
+    if (scanf("%d", &choix) != 1) {
+        int c; while ((c = getchar()) != '\n' && c != EOF);
+        return defaut;
+    }
+    return choix;
 }
 
 // Petite fonction utilitaire pour l'affichage coloré

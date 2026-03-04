@@ -35,5 +35,6 @@ void supprimerSauvegarde();
 void finaliserEvenement(Vaisseau *joueur);
 
 int lireEntierSecurise(int min, int max);
+int lireChoix(int defaut);
 
 #endif
