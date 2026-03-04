@@ -28,7 +28,9 @@ void afficherGameOver(Vaisseau *joueur) {
     
     // Message personnalisé selon la progression
     printf("\n" COLOR_YELLOW " Verdict du Haut-Commandement : " COLOR_RESET);
-    if (joueur->distanceParcourue < joueur->distanceObjectif / 4) 
+    if (joueur->distanceParcourue < 1)  
+        printf("Aucune mission effectuée.\n");
+    else if (joueur->distanceParcourue < joueur->distanceObjectif / 4) 
         printf("Une recrue qui n'a pas survécu au premier saut.\n");
     else if (joueur->distanceParcourue < joueur->distanceObjectif / 2)
         printf("Un pilote prometteur, emporté par l'immensité du vide.\n");
