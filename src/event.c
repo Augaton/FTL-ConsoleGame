@@ -4,6 +4,7 @@
 #include "magasin.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <time.h>
 
@@ -245,8 +246,6 @@ void explorerSecteurActuel(Vaisseau *joueur) {
             printf("Transmission du signal de détresse sur toutes les bandes...\n");
             for(int i=0; i<3; i++) { printf("."); fflush(stdout); SLEEP_MS(600); }
             printf("\n");
-
-            srand(time(NULL)); // Aléatoire pur pour le SOS
             
             if (rand() % 2 == 0) {
                 printf(COLOR_RED "[DANGER] Signature hostile détectée ! Des pirates ont triangulé votre position !\n" COLOR_RESET);
@@ -282,13 +281,7 @@ void explorerSecteurActuel(Vaisseau *joueur) {
     for(int i=0; i<3; i++) { printf("."); fflush(stdout); SLEEP_MS(500); }
     printf("\n");
 
-    // 4. Tirage aléatoire (Pondéré - Option B recommandée)
-    srand(time(NULL)); 
     int jet = rand() % 100;
-
-    // Logique de distribution des événements
-    // Note : Plus on explore, plus le risque de combat augmente légèrement ?
-    // Ici on reste simple :
     
     // 35% : Combat (Risque du farming)
     if (jet < 35) {
@@ -367,16 +360,10 @@ void executerEvenement(Vaisseau *joueur, const char* type) {
 }
 
 void lancerEvenementAleatoire(Vaisseau *joueur) {
-    // --- 1. GÉNÉRATION DE LA GRAINE "CHAOTIQUE" ---
-    // On mélange :
-    // - Le temps réel (pour que ça change à chaque seconde)
-    // - L'adresse mémoire du joueur (pour varier selon la session)
-    // - La seed du secteur (pour garder une teinte unique)
-    unsigned int seedChaos = (unsigned int)time(NULL) ^ (unsigned long)joueur ^ (joueur->seedSecteur << 3);
+    // Seed chaotique : temps + adresse mémoire (portable) + seed secteur
+    unsigned int seedChaos = (unsigned int)time(NULL) ^ (uintptr_t)joueur ^ (joueur->seedSecteur << 3);
     srand(seedChaos);
-
-    // Petit "chauffage" du générateur pour éviter les répétitions immédiates
-    rand(); rand();
+    rand(); rand(); // Chauffe le générateur
 
     // --- 2. CORRECTION DU MODULO ---
     // Tu as 10 cas (0 à 9). Donc il faut modulo 10.
@@ -395,17 +382,13 @@ void lancerEvenementAleatoire(Vaisseau *joueur) {
         case 9: evenementStationMercenaire(joueur); break;
     }
 
-    // Reset sur le temps pur pour la suite
-    srand((unsigned int)time(NULL));
 }
 
 
 // LISTE DES ÉVÉNEMENTS
 
 void evenementDetresse(Vaisseau *joueur) {
-    // --- SETUP DE LA SEED (Anti-Triche) ---
-    unsigned int seedUnique = joueur->seedSecteur + (joueur->distanceParcourue * rand()%1000);
-    srand(seedUnique);
+
 
     printf("\n" COLOR_YELLOW "╔════ [ SIGNAL DE DÉTRESSE ] ═══════════════════════════════════╗\n");
     printf("║ Un transporteur civil est coincé dans un champ d'astéroïdes.  ║\n");
@@ -496,17 +479,11 @@ void evenementDetresse(Vaisseau *joueur) {
         printf("Vous coupez les communications et continuez votre route.\n");
     }
 
-    // Reset du random pour la suite du jeu
-    srand(time(NULL));
-
     finaliserEvenement(joueur);
     attendreJoueur();
 }
 
 void evenementEpaveDerivante(Vaisseau *joueur) {
-    // --- SETUP SEED ---
-    unsigned int seedUnique = joueur->seedSecteur + (joueur->distanceParcourue * rand()%1000);
-    srand(seedUnique);
 
     printf("\n" COLOR_CYAN "╔════ [ ÉPAVE DÉRIVANTE ] ════════════════════════════════╗" COLOR_RESET "\n");
     printf("║ Les senseurs détectent un Croiseur Automatisé de classe Guerre.║\n");
@@ -619,9 +596,6 @@ void evenementEpaveDerivante(Vaisseau *joueur) {
         printf("Mieux vaut ne pas réveiller le géant qui dort. Vous partez.\n");
     }
 
-    // Reset RNG
-    srand(time(NULL));
-
     finaliserEvenement(joueur);
     attendreJoueur();
 }
@@ -682,9 +656,6 @@ void evenementAnomalieSpatiale(Vaisseau *joueur) {
     for(int i=0; i<3; i++) { printf("."); fflush(stdout); SLEEP_MS(600); }
     printf("\n");
 
-    unsigned int seedUnique = joueur->seedSecteur + (joueur->distanceParcourue * rand()%1000);
-    srand(seedUnique);
-
     int r = rand() % 100;
 
     if (r < 25) { 
@@ -728,8 +699,6 @@ void evenementCapsuleSurvie(Vaisseau *joueur) {
     scanf("%d", &choix);
 
     if (choix == 1) {
-        unsigned int seedUnique = joueur->seedSecteur + (joueur->distanceParcourue * rand()%1000);
-        srand(seedUnique);
         int r = rand() % 100;
         if (r < 40) {
             printf(COLOR_GREEN "✨ MIRACLE : Un ingénieur était à l'intérieur ! Il répare vos systèmes. (+5 Coque)" COLOR_RESET "\n");
@@ -867,8 +836,6 @@ void evenementLoterie(Vaisseau *joueur) {
         joueur->ferraille -= 10;
         printf("\nLancement de la machine");
         for(int i=0; i<3; i++) { printf("."); fflush(stdout); SLEEP_MS(500); }
-        unsigned int seedUnique = joueur->seedSecteur + (joueur->distanceParcourue * rand()%1000);
-        srand(seedUnique);
         if (rand() % 100 < 45) { 
             printf(COLOR_GREEN " GAGNÉ ! +20 Ferrailles !" COLOR_RESET "\n");
             joueur->ferraille += 20;
@@ -880,8 +847,6 @@ void evenementLoterie(Vaisseau *joueur) {
         joueur->ferraille -= 50;
         printf("\nLa roue de la fortune tourne");
         for(int i=0; i<3; i++) { printf("."); fflush(stdout); SLEEP_MS(700); }
-        unsigned int seedUnique = joueur->seedSecteur + (joueur->distanceParcourue * rand()%1000);
-        srand(seedUnique);
         if (rand() % 100 < 25) { 
             printf(COLOR_YELLOW " JACKPOT !!! +150 Ferrailles !" COLOR_RESET "\n");
             joueur->ferraille += 150;
