@@ -8,133 +8,134 @@
 #include <string.h>
 #include <time.h>
 
+// --- Affichage seul du HUD de navigation ---
+static void afficherHUDNavigation(Vaisseau *joueur) {
+    effacerEcran();
+
+    // EN-TÊTE : troncature du nom si nécessaire
+    char playerName[18];
+    if (strlen(joueur->nom) > 17) {
+        strncpy(playerName, joueur->nom, 17);
+        playerName[14] = '.'; playerName[15] = '.'; playerName[16] = '.';
+        playerName[17] = '\0';
+    } else {
+        strcpy(playerName, joueur->nom);
+    }
+
+    printf(COLOR_CYAN "╔══════════════════════════════════════════════════════════╗\n");
+    printf("║ " COLOR_BOLD "%-18s" COLOR_RESET COLOR_CYAN "CONSOLE DE NAVIGATION   SECTEUR: %02d/%d ║\n",
+           playerName, joueur->distanceParcourue, joueur->distanceObjectif);
+    printf("╠══════════════════════════════════════════════════════════╣" COLOR_RESET "\n");
+
+    // STATUT COQUE
+    char *couleurStatut;
+    char *texteStatut;
+    float ratioCoque = (float)joueur->coque / (float)joueur->coqueMax;
+
+    if      (ratioCoque > 0.7f) { couleurStatut = COLOR_GREEN;  texteStatut = "NOMINAL";   }
+    else if (ratioCoque > 0.3f) { couleurStatut = COLOR_YELLOW; texteStatut = "ATTENTION"; }
+    else                        { couleurStatut = COLOR_RED;    texteStatut = "CRITIQUE";  }
+
+    printf(COLOR_CYAN "║ " COLOR_RESET "COQUE: ");
+    if (ratioCoque <= 0.3f) printf(COLOR_RED);
+    printf("%02d/%02d " COLOR_RESET, joueur->coque, joueur->coqueMax);
+    printf("                       STATUT: %s%-12s" COLOR_CYAN " ║\n", couleurStatut, texteStatut);
+
+    // BOUCLIERS
+    printf(COLOR_CYAN "║ " COLOR_RESET "SHIELD: ");
+    int nbBoucliersAffiches = 0;
+    for (int i = 0; i < joueur->systemeBouclier.efficacite; i++) {
+        printf(i < joueur->bouclierActuel ? COLOR_CYAN "⬢ " : COLOR_RED "⬡ ");
+        nbBoucliersAffiches++;
+    }
+    int padding = 58 - (9 + (nbBoucliersAffiches * 2));
+    for (int i = 0; i < padding; i++) printf(" ");
+    printf(COLOR_CYAN "║\n");
+
+    // RESSOURCES
+    printf("╠══════════════════════════════════════════════════════════╣\n");
+    printf("║ " COLOR_YELLOW "⚡ " COLOR_RESET "CARBURANT: %-3d  "
+               COLOR_YELLOW "⚓ " COLOR_RESET "FERRAILLE: %-4d  "
+               COLOR_YELLOW "🚀 " COLOR_RESET "MISSILES: %-3d " COLOR_CYAN " ║\n",
+           joueur->carburant, joueur->ferraille, joueur->missiles);
+
+    // BARRE DE PROGRESSION
+    printf("╠══════════════════════════════════════════════════════════╣\n");
+    printf("║ SAUT: [");
+    int tailleBarre = 39;
+    int posVaisseau = (joueur->distanceParcourue * tailleBarre) / joueur->distanceObjectif;
+    if (posVaisseau >= tailleBarre) posVaisseau = tailleBarre - 1;
+
+    for (int i = 0; i < tailleBarre; i++) {
+        if      (i < posVaisseau)  printf(COLOR_GREEN "=");
+        else if (i == posVaisseau) printf(COLOR_YELLOW "✈");
+        else                       printf(COLOR_RESET "·");
+    }
+    printf(COLOR_RESET "]");
+    for (int i = 0; i < 10; i++) printf(" ");
+    printf(COLOR_CYAN "║\n");
+    printf("╚══════════════════════════════════════════════════════════╝" COLOR_RESET "\n");
+
+    // MENU ACTIONS
+    printf("\n" COLOR_CYAN "  [ ORDRES DE MISSION ]" COLOR_RESET "\n");
+    printf(COLOR_BOLD "  1." COLOR_RESET " ENGAGER LE SAUT SPATIAL " COLOR_YELLOW "( -1 ⚡ )" COLOR_RESET "\n");
+
+    char *colExplo = (joueur->explorationActuelle < joueur->explorationMax) ? COLOR_YELLOW : COLOR_BLACK;
+    char statusExplo[30];
+    if (joueur->explorationActuelle < joueur->explorationMax)
+        sprintf(statusExplo, "( -1 ⚡ | %d/%d )", joueur->explorationActuelle, joueur->explorationMax);
+    else
+        sprintf(statusExplo, "( VIDE )");
+
+    printf(COLOR_BOLD "  2." COLOR_RESET " EXPLORER LE SECTEUR ACTUEL %s%s" COLOR_RESET "\n", colExplo, statusExplo);
+    printf(COLOR_BOLD "  3." COLOR_RESET " GÉRER LE VAISSEAU / INVENTAIRE\n");
+    printf(COLOR_BOLD "  4." COLOR_RESET " ABANDONNER LA MISSION\n");
+    printf("\n" COLOR_YELLOW " COMMANDE > " COLOR_RESET);
+}
+
+// --- Traitement seul du choix — retourne 0 pour quitter la boucle ---
+static int traiterChoixNavigation(Vaisseau *joueur, int choix) {
+    if (choix == 1) {
+        if (joueur->carburant > 0) {
+            lancerSequenceDeSaut(joueur);
+        } else {
+            printf(COLOR_RED "\n[ERREUR] RÉSERVOIRS VIDES !\n" COLOR_RESET);
+            printf("Vous pouvez tenter d'explorer le secteur local (Choix 2) pour trouver du fuel.\n");
+            SLEEP_MS(2000);
+        }
+    }
+    else if (choix == 2) {
+        explorerSecteurActuel(joueur);
+    }
+    else if (choix == 3) {
+        menuEtatVaisseau(joueur);
+    }
+    else if (choix == 4) {
+        char confirm;
+        printf(COLOR_RED "\n[DANGER] Etes-vous sûr de vouloir autodétruire le vaisseau ? (o/n) > " COLOR_RESET);
+        scanf("%c", &confirm);
+        if (confirm == 'o' || confirm == 'O') {
+            printf(COLOR_RED "\nProtocole d'autodestruction engagé...\n" COLOR_RESET);
+            SLEEP_MS(1000);
+            joueur->coque = 0;
+            return 0; // Quitter la boucle
+        } else {
+            printf(COLOR_GREEN "Annulation. Retour au poste de pilotage.\n" COLOR_RESET);
+            SLEEP_MS(800);
+        }
+    }
+    else if (choix == 99) {
+        ouvrirMenuDebug(joueur);
+    }
+    return 1; // Continuer la boucle
+}
+
+// --- Boucle principale de navigation ---
 void menuVoyage(Vaisseau *joueur) {
-    int continuerMenu = 1;
-
-    while (continuerMenu && joueur->coque > 0) {
-        int choix = 0;
-        effacerEcran();
-        
-        // --- EN-TÊTE ---
-        char playerName[18];
-
-        // Troncature du nom pour l'affichage
-        if (strlen(joueur->nom) > 17) {
-            strncpy(playerName, joueur->nom, 17);
-            playerName[14] = '.'; playerName[15] = '.'; playerName[16] = '.';
-            playerName[17] = '\0';
-        } else {
-            strcpy(playerName, joueur->nom);
-        }
-
-
-        printf(COLOR_CYAN "╔══════════════════════════════════════════════════════════╗\n");
-        printf("║ " COLOR_BOLD "%-18s" COLOR_RESET COLOR_CYAN "CONSOLE DE NAVIGATION   SECTEUR: %02d/%d ║\n", 
-               playerName, joueur->distanceParcourue, joueur->distanceObjectif);
-        printf("╠══════════════════════════════════════════════════════════╣" COLOR_RESET "\n");
-
-        // --- STATUT COQUE ---
-        char *couleurStatut;
-        char *texteStatut;
-        float ratioCoque = (float)joueur->coque / (float)joueur->coqueMax;
-
-        if (ratioCoque > 0.7) { couleurStatut = COLOR_GREEN; texteStatut = "NOMINAL"; } 
-        else if (ratioCoque > 0.3) { couleurStatut = COLOR_YELLOW; texteStatut = "ATTENTION"; } 
-        else { couleurStatut = COLOR_RED; texteStatut = "CRITIQUE"; }
-
-        printf(COLOR_CYAN "║ " COLOR_RESET "COQUE: ");
-        if (ratioCoque <= 0.3) printf(COLOR_RED);
-        printf("%02d/%02d " COLOR_RESET, joueur->coque, joueur->coqueMax);
-        printf("                       STATUT: %s%-12s" COLOR_CYAN " ║\n", couleurStatut, texteStatut);
-
-        // --- BOUCLIERS ---
-        printf(COLOR_CYAN "║ " COLOR_RESET "SHIELD: ");
-        int nbBoucliersAffiches = 0;
-        for(int i=0; i < joueur->systemeBouclier.efficacite; i++) {
-            printf(i < joueur->bouclierActuel ? COLOR_CYAN "⬢ " : COLOR_RED "⬡ ");
-            nbBoucliersAffiches++;
-        }
-        int padding = 58 - (9 + (nbBoucliersAffiches * 2));
-        for(int i=0; i<padding; i++) printf(" ");
-        printf(COLOR_CYAN "║\n");
-
-        // --- RESSOURCES ---
-        printf("╠══════════════════════════════════════════════════════════╣\n");
-        printf("║ " COLOR_YELLOW "⚡ " COLOR_RESET "CARBURANT: %-3d  " COLOR_YELLOW "⚓ " COLOR_RESET "FERRAILLE: %-4d  " COLOR_YELLOW "🚀 " COLOR_RESET "MISSILES: %-3d " COLOR_CYAN " ║\n", 
-                joueur->carburant, joueur->ferraille, joueur->missiles);
-
-        // --- BARRE PROGRESSION ---
-        printf("╠══════════════════════════════════════════════════════════╣\n");
-        printf("║ SAUT: [");
-        int tailleBarre = 39; 
-        int posVaisseau = (joueur->distanceParcourue * tailleBarre) / joueur->distanceObjectif;
-        if (posVaisseau >= tailleBarre) posVaisseau = tailleBarre - 1;
-
-        for(int i=0; i<tailleBarre; i++) {
-            if (i < posVaisseau) printf(COLOR_GREEN "=");
-            else if (i == posVaisseau) printf(COLOR_YELLOW "✈");
-            else printf(COLOR_RESET "·");
-        }
-        printf(COLOR_RESET "]");
-        for(int i=0; i<10; i++) printf(" ");
-        printf(COLOR_CYAN "║\n");
-        printf("╚══════════════════════════════════════════════════════════╝" COLOR_RESET "\n");
-
-        // --- MENU ACTIONS ---
-        printf("\n" COLOR_CYAN "  [ ORDRES DE MISSION ]" COLOR_RESET "\n");
-        printf(COLOR_BOLD "  1." COLOR_RESET " ENGAGER LE SAUT SPATIAL " COLOR_YELLOW "( -1 ⚡ )" COLOR_RESET "\n");
-        // OPTION D'EXPLORATION LOCALE
-        char *colExplo = (joueur->explorationActuelle < joueur->explorationMax) ? COLOR_YELLOW : COLOR_BLACK;
-        char statusExplo[30];
-        
-        if (joueur->explorationActuelle < joueur->explorationMax) {
-            sprintf(statusExplo, "( -1 ⚡ | %d/%d )", joueur->explorationActuelle, joueur->explorationMax);
-        } else {
-            sprintf(statusExplo, "( VIDE )");
-        }
-
-        printf(COLOR_BOLD "  2." COLOR_RESET " EXPLORER LE SECTEUR ACTUEL %s%s" COLOR_RESET "\n", colExplo, statusExplo);
-
-        printf(COLOR_BOLD "  3." COLOR_RESET " GÉRER LE VAISSEAU / INVENTAIRE\n");
-        printf(COLOR_BOLD "  4." COLOR_RESET " ABANDONNER LA MISSION\n");
-        
-        printf("\n" COLOR_YELLOW " COMMANDE > " COLOR_RESET);
-
-        choix = lireChoix(-1);
-
-        // --- TRAITEMENT ---
-        if (choix == 1) {
-             if (joueur->carburant > 0) {
-                lancerSequenceDeSaut(joueur); 
-             } else {
-                 printf(COLOR_RED "\n[ERREUR] RÉSERVOIRS VIDES !\n" COLOR_RESET);
-                 printf("Vous pouvez tenter d'explorer le secteur local (Choix 2) pour trouver du fuel.\n");
-                 SLEEP_MS(2000);
-             }
-        }
-        else if (choix == 2) {
-            explorerSecteurActuel(joueur);
-        }
-        else if (choix == 3) {
-            menuEtatVaisseau(joueur);
-        }
-        else if (choix == 4) {
-             char confirm;
-            printf(COLOR_RED "\n[DANGER] Etes-vous sûr de vouloir autodétruire le vaisseau ? (o/n) > " COLOR_RESET);
-            scanf("%c", &confirm);
-            if (confirm == 'o' || confirm == 'O') {
-                printf(COLOR_RED "\nProtocole d'autodestruction engagé...\n" COLOR_RESET);
-                SLEEP_MS(1000);
-                joueur->coque = 0;
-                continuerMenu = 0;
-            } else {
-                printf(COLOR_GREEN "Annulation. Retour au poste de pilotage.\n" COLOR_RESET);
-                SLEEP_MS(800);
-            }
-        }
-        else if (choix == 99) {
-            ouvrirMenuDebug(joueur);
-        }
+    while (joueur->coque > 0) {
+        afficherHUDNavigation(joueur);
+        int choix = lireChoix(-1);
+        if (!traiterChoixNavigation(joueur, choix)) break;
     }
 }
 
@@ -683,7 +684,7 @@ void evenementMarchandAmbulant(Vaisseau *joueur) {
         }
 
         if (joueur->coque > 0 && marchand.coque <= 0) {
-            printf(COLOR_YELLOW "\n[PILLAGE] Vous forcez la soute de l'épave encore fumante...\n" COLOR_RESET);
+            printf(COLOR_YELLOW "\n[PILLAGE] Vous forcez la soute de l'épave fumante...\n" COLOR_RESET);
             SLEEP_MS(800);
             int volFuel = (rand() % 3) + 2;
             int volMissiles = (rand() % 3) + 2;
@@ -705,7 +706,7 @@ void evenementMarchandAmbulant(Vaisseau *joueur) {
 
 // --- Sous-fonction extraite de evenementLoterie ---
 static void braquageCasino(Vaisseau *joueur) {
-    printf(COLOR_RED "\n[ALARME] Vous activez vos armes et toute la station passe en alerte rouge !\n" COLOR_RESET);
+    printf(COLOR_RED "\n[ALARME] VOUS ACTIVEZ VOS ARMES ! TOUTE LA STATION PASSE EN ALERTE ROUGE !" COLOR_RESET "\n");
     SLEEP_MS(1000);
     
     printf(COLOR_YELLOW "\n--- VAGUE 1/3 : DRONE DE SÉCURITÉ ---\n" COLOR_RESET);
