@@ -328,7 +328,7 @@ void executerEvenement(Vaisseau *joueur, const char* type) {
 
 void lancerEvenementAleatoire(Vaisseau *joueur) {
     // Seed chaotique : temps + adresse mémoire (portable) + seed secteur
-    unsigned int seedChaos = (unsigned int)time(NULL) ^ (uintptr_t)joueur ^ (joueur->seedSecteur << 3);
+    unsigned int seedChaos = joueur->seedSecteur ^ (joueur->distanceParcourue * 2654435761u);
     srand(seedChaos);
     rand(); rand(); // Chauffe le générateur
 
