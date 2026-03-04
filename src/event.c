@@ -141,6 +141,10 @@ void menuVoyage(Vaisseau *joueur) {
 
 void lancerSequenceDeSaut(Vaisseau *joueur) {
     // Génération des destinations potentielles
+    unsigned int seedSaut = joueur->seedSecteur ^ (joueur->distanceParcourue * 2654435761u);
+    srand(seedSaut);
+
+
     const char* baliseA = inspecterBalise();
     const char* baliseB = inspecterBalise();
     int choixSaut;
@@ -328,7 +332,7 @@ void executerEvenement(Vaisseau *joueur, const char* type) {
 
 void lancerEvenementAleatoire(Vaisseau *joueur) {
     // Seed chaotique : temps + adresse mémoire (portable) + seed secteur
-    unsigned int seedChaos = joueur->seedSecteur ^ (joueur->distanceParcourue * 2654435761u);
+   unsigned int seedChaos = joueur->seedSecteur ^ (joueur->distanceParcourue * 2654435761u) ^ (joueur->explorationActuelle * 40503u);
     srand(seedChaos);
     rand(); rand(); // Chauffe le générateur
 
