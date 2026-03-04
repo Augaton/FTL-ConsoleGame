@@ -361,7 +361,7 @@ void executerEvenement(Vaisseau *joueur, const char* type) {
 
 void lancerEvenementAleatoire(Vaisseau *joueur) {
     // Seed chaotique : temps + adresse mémoire (portable) + seed secteur
-    unsigned int seedChaos = (unsigned int)time(NULL) ^ (unsigned long)joueur ^ (joueur->seedSecteur << 3);
+    unsigned int seedChaos = (unsigned int)time(NULL) ^ (uintptr_t)joueur ^ (joueur->seedSecteur << 3);
     srand(seedChaos);
     rand(); rand(); // Chauffe le générateur
 
@@ -1044,9 +1044,11 @@ void evenementStationMercenaire(Vaisseau *joueur) {
     printf("Un mercenaire Mantis (Soldat) propose ses services.\n");
     printf("\"Moi tuer pour toi. Toi payer moi.\"\n");
 
-    char *noms[] = {"Mercredi", "Krog", "Zorp", "Lyla", "Brack", "Neo", "Kait", "Jinx", "Rook", "Mordin", "Vex", "Lydia", "Hélydia", "Ismael", "Tara", "Orin", "Sable", "Dax", "Vera", "Kiro", "Zane", "Mira", "Ryn"};
+    char *noms[] = {"Mercredi", "Krog", "Zorp", "Lyla", "Brack", "Neo", "Kait", "Jinx", "Rook", "Mordin",
+                    "Vex", "Lydia", "Hélydia", "Ismael", "Tara", "Orin", "Sable", "Dax", "Vera", "Kiro",
+                    "Zane", "Mira", "Ryn"};
+    int nbNoms = 23;
 
-    // Vérifie s'il y a de la place
     int slotLibre = -1;
     for(int i=0; i<3; i++) {
         if (!joueur->equipage[i].estVivant) {
@@ -1058,28 +1060,29 @@ void evenementStationMercenaire(Vaisseau *joueur) {
     if (slotLibre == -1) {
         printf(COLOR_YELLOW "Hélas, votre vaisseau est complet. Vous ne pouvez pas recruter.\n" COLOR_RESET);
     } else {
-        printf("1. Recruter %s (Soldat) - Prix : 40 Ferrailles\n", noms[rand() % 21]);
+        char *nomMercenaire = noms[rand() % nbNoms];
+        printf("1. Recruter %s (Soldat) - Prix : 40 Ferrailles\n", nomMercenaire);
         printf("2. Refuser\n");
         
         int choix;
         printf("> ");
-        scanf("%d", &choix);
+        if (scanf("%d", &choix) != 1) {
+            int c; while ((c = getchar()) != '\n' && c != EOF);
+            choix = 2;
+        }
 
         if (choix == 1) {
             if (joueur->ferraille >= 40) {
                 joueur->ferraille -= 40;
-                
-                // Création du soldat
-                strcpy(joueur->equipage[slotLibre].nom, noms[rand() % 21]);
+                strcpy(joueur->equipage[slotLibre].nom, nomMercenaire);
                 joueur->equipage[slotLibre].role = ROLE_SOLDAT;
-                joueur->equipage[slotLibre].pv = 120; // Les soldats sont robustes
+                joueur->equipage[slotLibre].pv = 120;
                 joueur->equipage[slotLibre].pvMax = 120;
                 joueur->equipage[slotLibre].estVivant = 1;
                 joueur->nbMembres++;
-
-                printf(COLOR_GREEN "%s monte à bord ! Vos dégâts seront augmentés.\n" COLOR_RESET, noms[rand() % 21]);
+                printf(COLOR_GREEN "%s monte à bord ! Vos dégâts seront augmentés.\n" COLOR_RESET, nomMercenaire);
             } else {
-                printf(COLOR_RED "Pas assez de ferraille ! %s vous crache dessus.\n" COLOR_RESET, noms[rand() % 21]);
+                printf(COLOR_RED "Pas assez de ferraille ! %s vous crache dessus.\n" COLOR_RESET, nomMercenaire);
             }
         }
     }
