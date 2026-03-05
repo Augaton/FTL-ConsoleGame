@@ -278,6 +278,7 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
         
         // --- 2. RECHARGER BOUCLIERS ---
         else if (choixAction == 2) {
+            terminerNCurses();
             int regen = (rand() % 3) + 2; 
             int avant = joueur->bouclierActuel;
             joueur->bouclierActuel += regen;
@@ -310,14 +311,17 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
             }
 
             SLEEP_MS(1000);
+            initialiserNCurses();
             tourFini = 1;
         }
         
         // --- 3. FUITE ---
         else if (choixAction == 3) {
+            terminerNCurses();
             if (estBossFinal) {
                 printf(COLOR_RED "\n[ERREUR] Le vaisseau mère génère un champ inhibiteur ! Saut FTL impossible !\n" COLOR_RESET);
                 SLEEP_MS(2000);
+                initialiserNCurses();
             } else {
                 joueur->chargeFTL++;
                 printf(COLOR_YELLOW "\nChargement FTL...\n" COLOR_RESET);
@@ -335,14 +339,17 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
                 }
                 
                 if (joueur->chargeFTL >= joueur->maxchargeFTL) { ennemi->coque = 0; return; }
+                initialiserNCurses();
                 tourFini = 1;
             }
         } 
         
         // --- 4. ANALYSER ---
         else if (choixAction == 4) {
+            terminerNCurses();
             analyserEnnemi(joueur, ennemi);
             attendreJoueur();
+            initialiserNCurses();
         }
 
     } while(!tourFini);
