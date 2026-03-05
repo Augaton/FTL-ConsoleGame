@@ -457,7 +457,121 @@ int menuChoixArme(int missiles, Vaisseau *v) {
     return menuInteractif("CHOIX DE L'ARME", options, 2, v);
 }
 
-void ajouterLog(const char* message) {
+int menuMagasinPrincipal(int ferraille, const char *promo, int pourcentPromo) {
+    char ligne1[80];
+    snprintf(ligne1, 80, "CRÉDITS: %d Fer | PROMO: %s (-%d%%)", ferraille, promo, pourcentPromo);
+    
+    OptionMenu options[] = {
+        {"[A] MAINTENANCE", 1},
+        {"[B] UPGRADES", 2},
+        {"[C] SERVICES", 3},
+        {"[D] PERSONNEL", 4},
+        {"[E] QUITTER", 5}
+    };
+    return menuInteractif(ligne1, options, 5, NULL);
+}
+
+int menuMaintenance(int coqueMax, int coqueActuelle, int missiles, int carburant) {
+    char coque_label[60];
+    char missiles_label[60];
+    char carburant_label[60];
+    
+    snprintf(coque_label, 60, "[A] Réparer Coque (+5) | 10 Fer | Besoin: %d", coqueMax - coqueActuelle);
+    snprintf(missiles_label, 60, "[B] Missiles (+3) | 15 Fer | Stock: %d", missiles);
+    snprintf(carburant_label, 60, "[C] Carburant (x1) | 5 Fer | Stock: %d", carburant);
+    
+    OptionMenu options[] = {
+        {coque_label, 1},
+        {missiles_label, 2},
+        {carburant_label, 3},
+        {"[D] RETOUR", 4}
+    };
+    return menuInteractif("MAINTENANCE", options, 4, NULL);
+}
+
+int menuUpgrades(int ferraille) {
+    char titre[60];
+    snprintf(titre, 60, "UPGRADES - Crédit: %d", ferraille);
+    
+    OptionMenu options[] = {
+        {"[A] ARMES (30 Fer)", 1},
+        {"[B] BOUCLIERS (25 Fer)", 2},
+        {"[C] MOTEURS (20 Fer)", 3},
+        {"[D] COQUE (35 Fer)", 4},
+        {"[E] VISÉE (15 Fer)", 5},
+        {"[F] RETOUR", 6}
+    };
+    return menuInteractif(titre, options, 6, NULL);
+}
+
+int menuServices(int ferraille) {
+    char titre[60];
+    snprintf(titre, 60, "SERVICES - Crédit: %d", ferraille);
+    
+    OptionMenu options[] = {
+        {"[A] RECYCLAGE (Convertir minerai)", 1},
+        {"[B] AUDIT SYSTÈMES (Diagnostic)", 2},
+        {"[C] RETOUR", 3}
+    };
+    return menuInteractif(titre, options, 3, NULL);
+}
+
+int menuPersonnel(int ferraille) {
+    char titre[60];
+    snprintf(titre, 60, "PERSONNEL - Crédit: %d", ferraille);
+    
+    OptionMenu options[] = {
+        {"[A] RECRUTER EQUIPAGE", 1},
+        {"[B] CONGEDIER MEMBRE", 2},
+        {"[C] RETOUR", 3}
+    };
+    return menuInteractif(titre, options, 3, NULL);
+}
+
+int menuRecrutement(const char *nom1, const char *nom2, const char *nom3, int prix1, int prix2, int prix3) {
+    char opt1[70];
+    char opt2[70];
+    char opt3[70];
+    
+    snprintf(opt1, 70, "[A] %-20s | Prix: %d Fer", nom1, prix1);
+    snprintf(opt2, 70, "[B] %-20s | Prix: %d Fer", nom2, prix2);
+    snprintf(opt3, 70, "[C] %-20s | Prix: %d Fer", nom3, prix3);
+    
+    OptionMenu options[] = {
+        {opt1, 1},
+        {opt2, 2},
+        {opt3, 3},
+        {"[D] ANNULER", 4}
+    };
+    return menuInteractif("SÉLECTIONNER CANDIDAT", options, 4, NULL);
+}
+
+int menuEtatVaisseauActions(void) {
+    OptionMenu options[] = {
+        {"[A] GÉRER MEMBRE 1", 1},
+        {"[B] GÉRER MEMBRE 2", 2},
+        {"[C] GÉRER MEMBRE 3", 3},
+        {"[D] INFIRMERIE (Soigner)", 4},
+        {"[E] ATELIER (Réparer)", 5},
+        {"[F] RETOUR", 0}
+    };
+    return menuInteractif("COMMANDES DISPONIBLES", options, 6, NULL);
+}
+
+int menuMutation(const char *nomMembre, const char *roleActuel) {
+    char titre[80];
+    snprintf(titre, 80, "RÉAFFECTATION: %s (Poste: %s)", nomMembre, roleActuel);
+    
+    OptionMenu options[] = {
+        {"[A] PILOTE (+Esquive)", 1},
+        {"[B] INGÉNIEUR (+Recharge)", 2},
+        {"[C] SOLDAT (+Dégâts)", 3},
+        {"[D] ANNULER", 0}
+    };
+    return menuInteractif(titre, options, 4, NULL);
+}
+
+void afficherLog(const char* message) {
     static char logs[5][100]; // Garde les 5 derniers messages
     // Logique pour décaler les messages vers le haut
     for(int i=0; i<4; i++) strcpy(logs[i], logs[i+1]);

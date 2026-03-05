@@ -1,5 +1,6 @@
 #include "vaisseau.h"
 #include "utils.h"
+#include "interface.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -209,11 +210,10 @@ void menuEtatVaisseau(Vaisseau *joueur) {
         printf(" [0]   " COLOR_WHITE "RETOUR" COLOR_RESET "\n");
         printf(COLOR_YELLOW "\n > " COLOR_RESET);
 
-        int choix;
-        if (scanf("%d", &choix) != 1) { 
-            int c; while ((c = getchar()) != '\n' && c != EOF); 
-            continue; 
-        }
+        terminerNCurses();
+        initialiserNCurses();
+        int choix = menuEtatVaisseauActions();
+        terminerNCurses();
 
         // --- LOGIQUE DES ACTIONS ---
 
@@ -228,8 +228,9 @@ void menuEtatVaisseau(Vaisseau *joueur) {
                 printf("3. Soldat    (+Dégâts Armes)\n");
                 printf("0. Annuler\n> ");
                 
-                int r;
-                scanf("%d", &r);
+                initialiserNCurses();
+                int r = menuMutation(m->nom, getRoleNom(m->role));
+                terminerNCurses();
                 if (r == 1) m->role = ROLE_PILOTE;
                 if (r == 2) m->role = ROLE_INGENIEUR;
                 if (r == 3) m->role = ROLE_SOLDAT;
@@ -238,10 +239,12 @@ void menuEtatVaisseau(Vaisseau *joueur) {
                 printf(COLOR_RED "Ce poste est vacant.\n" COLOR_RESET);
             }
             SLEEP_MS(600);
+            initialiserNCurses();
         }
         
         // SOINS
         else if (choix == 4) {
+            terminerNCurses();
             if (joueur->carburant > 0) {
                 int besoinSoin = 0;
                 for(int i=0; i<3; i++) if(joueur->equipage[i].estVivant && joueur->equipage[i].pv < joueur->equipage[i].pvMax) besoinSoin = 1;
@@ -259,10 +262,12 @@ void menuEtatVaisseau(Vaisseau *joueur) {
                 printf(COLOR_RED "Carburant insuffisant pour alimenter l'infirmerie.\n" COLOR_RESET);
             }
             SLEEP_MS(1000);
+            initialiserNCurses();
         }
 
         // RÉPARATION DE FORTUNE
         else if (choix == 5) {
+            terminerNCurses();
             if (joueur->ferraille >= 2 && joueur->coque < joueur->coqueMax) {
                 joueur->ferraille -= 2;
                 joueur->coque++;
@@ -273,6 +278,7 @@ void menuEtatVaisseau(Vaisseau *joueur) {
                 printf(COLOR_RED "Pas assez de ferraille (Requis: 2).\n" COLOR_RESET);
             }
             SLEEP_MS(800);
+            initialiserNCurses();
         }
 
         // RETOUR

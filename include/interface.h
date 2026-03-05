@@ -24,6 +24,18 @@ int menuCombatAction(Vaisseau *v);
 int menuChoixCible(int chanceCoque, int chanceSysteme, Vaisseau *v);
 int menuChoixArme(int missiles, Vaisseau *v);
 
+// Menus du magasin
+int menuMagasinPrincipal(int ferraille, const char *promo, int pourcentPromo);
+int menuMaintenance(int coqueMax, int coqueActuelle, int missiles, int carburant);
+int menuUpgrades(int ferraille);
+int menuServices(int ferraille);
+int menuPersonnel(int ferraille);
+int menuRecrutement(const char *nom1, const char *nom2, const char *nom3, int prix1, int prix2, int prix3);
+
+// Menus du vaisseau (état)
+int menuEtatVaisseauActions(void);
+int menuMutation(const char *nomMembre, const char *roleActuel);
+
 // Menu oui/non rapide
 int demanderConfirmation(const char *titre, const char *question);
 

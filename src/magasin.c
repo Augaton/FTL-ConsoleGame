@@ -1,5 +1,6 @@
 #include "magasin.h"
 #include "utils.h"
+#include "interface.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -65,6 +66,7 @@ void ouvrirMagasin(Vaisseau *joueur) {
     const int SEUIL_AVANT_INFLATION = 2; 
 
     while (categorie != 5) { // Quitter est passé à 5
+        terminerNCurses();
         effacerEcran();
 
         int fatigueIngenieur = 0;
@@ -100,35 +102,46 @@ void ouvrirMagasin(Vaisseau *joueur) {
         printf(COLOR_GREEN "║ " COLOR_YELLOW "3. [SERVICES]   " COLOR_RESET "  Marché noir & Recyclage                " COLOR_GREEN "║\n");
         printf(COLOR_GREEN "║ " COLOR_MAGENTA "4. [PERSONNEL]  " COLOR_RESET "  Recrutement & Gestion RH               " COLOR_GREEN "║\n");
         printf(COLOR_GREEN "║ " COLOR_RESET "5. [QUITTER]    " COLOR_RESET "  Reprendre la navigation                " COLOR_GREEN "║\n");
-        printf(COLOR_GREEN "╚══════════════════════════════════════════════════════════╝" COLOR_RESET "\n");
+        printf(COLOR_GREEN "╚══════════════════════════════════════════════════════════╝" COLOR_RESET "\n\n");
         
-        printf("\n " COLOR_YELLOW "Choisir catégorie > " COLOR_RESET);
-        if (scanf("%d", &categorie) != 1) {
-            int c; while ((c = getchar()) != '\n' && c != EOF);
-            continue;
-        }
+        initialiserNCurses();
+        categorie = menuMagasinPrincipal(joueur->ferraille, nomPromo, pourcentPromo);
 
         // --- 1. MAINTENANCE ---
         if (categorie == 1) {
+            terminerNCurses();
             int choix = 0;
             printf("\n" COLOR_CYAN "─── MAINTENANCE ───" COLOR_RESET "\n");
             printf("1. Réparer Coque (+5)  | 10 Fer. | (Besoin: %d)\n", joueur->coqueMax - joueur->coque);
             printf("2. Missiles (+3)       | 15 Fer. | Stock: %d\n", stockMissiles);
             printf("3. Carburant (x1)      | 05 Fer. | Stock: %d\n", stockCarburant);
             printf("4. Retour\n > ");
-            scanf("%d", &choix);
+            
+            initialiserNCurses();
+            choix = menuMaintenance(joueur->coqueMax, joueur->coque, stockMissiles, stockCarburant);
+            terminerNCurses();
 
             if (choix == 1 && joueur->ferraille >= 10 && joueur->coque < joueur->coqueMax) {
                 joueur->ferraille -= 10;
                 joueur->coque = (joueur->coque + 5 > joueur->coqueMax) ? joueur->coqueMax : joueur->coque + 5;
                 printf(COLOR_GREEN "✔ Coque réparée.\n" COLOR_RESET);
+                nombreAchats++;
             } 
             else if (choix == 2 && stockMissiles > 0 && joueur->ferraille >= 15) {
                 joueur->ferraille -= 15; joueur->missiles += 3; stockMissiles--;
+                printf(COLOR_GREEN "✔ Missiles achetés.\n" COLOR_RESET);
+                nombreAchats++;
             } 
             else if (choix == 3 && stockCarburant > 0 && joueur->ferraille >= 5) {
                 joueur->ferraille -= 5; joueur->carburant += 1; stockCarburant--;
+                printf(COLOR_GREEN "✔ Carburant acheté.\n" COLOR_RESET);
+                nombreAchats++;
             }
+            else if (choix != 4) {
+                printf(COLOR_RED "✗ Transaction refusée.\n" COLOR_RESET);
+            }
+            attendreJoueur();
+            initialiserNCurses();
         } 
         
         // --- 2. UPGRADES ---
@@ -180,7 +193,9 @@ void ouvrirMagasin(Vaisseau *joueur) {
             
             printf("6. Retour\n > ");
             
-            scanf("%d", &choix);
+            initialiserNCurses();
+            choix = menuUpgrades(joueur->ferraille);
+            terminerNCurses();
 
             int achatEffectue = 0;
             if (choix == 1 && joueur->ferraille >= prixArme) {
@@ -204,27 +219,37 @@ void ouvrirMagasin(Vaisseau *joueur) {
 
             if (achatEffectue) {
                 nombreAchats++;
+                attendreJoueur();
+                initialiserNCurses();
                 if (nombreAchats == SEUIL_AVANT_INFLATION) {
+                    terminerNCurses();
                     printf(COLOR_YELLOW "⚠ Fin des tarifs préférentiels. Inflation au prochain achat !\n" COLOR_RESET);
                     SLEEP_MS(1200);
+                    initialiserNCurses();
                 } else if (nombreAchats > SEUIL_AVANT_INFLATION) {
+                    terminerNCurses();
                     printf(COLOR_RED "⚠ Demande forte : Les prix augmentent encore !\n" COLOR_RESET);
                     SLEEP_MS(800);
+                    initialiserNCurses();
                 }
             }
         }
         
         // --- 3. SERVICES ---
         else if (categorie == 3) {
+            terminerNCurses();
             int choix = 0;
             printf("\n" COLOR_YELLOW "─── SERVICES DU MARCHÉ NOIR ───" COLOR_RESET "\n");
             printf("1. Vendre 1 Carburant (+4 Ferraille)\n");
             printf("2. Recycler Arme Actuelle (Gain : Rang * 12)\n"); 
             printf("3. Retour\n > ");
-            scanf("%d", &choix);
+            initialiserNCurses();
+            choix = menuServices(joueur->ferraille);
+            terminerNCurses();
 
             if (choix == 1 && joueur->carburant > 0) {
                 joueur->carburant--; joueur->ferraille += 4;
+                printf(COLOR_GREEN "✔ Carburant vendu.\n" COLOR_RESET);
             } else if (choix == 2) {
                 int gain = joueur->systemeArme.rang * 12;
                 joueur->ferraille += gain;
@@ -233,16 +258,21 @@ void ouvrirMagasin(Vaisseau *joueur) {
                 joueur->systemeArme.efficacite = 1;
                 printf(COLOR_GREEN "✔ Arme recyclée pour %d Ferraille.\n" COLOR_RESET, gain);
             }
+            attendreJoueur();
+            initialiserNCurses();
         }
 
         // --- 4. PERSONNEL (NOUVEAU) ---
         else if (categorie == 4) {
+            terminerNCurses();
             int choix = 0;
             printf("\n" COLOR_MAGENTA "─── BUREAU DE RECRUTEMENT & RH ───" COLOR_RESET "\n");
             printf("1. Recruter un mercenaire (Achat)\n");
             printf("2. Renvoyer un membre (Vente / Recyclage)\n");
             printf("3. Retour\n > ");
-            scanf("%d", &choix);
+            initialiserNCurses();
+            choix = menuPersonnel(joueur->ferraille);
+            terminerNCurses();
 
             // ACHAT DE PERSONNEL
             if (choix == 1) {
@@ -263,8 +293,11 @@ void ouvrirMagasin(Vaisseau *joueur) {
                                i+1, recrues[i].nom, getRoleNom(recrues[i].role), recrues[i].pv, recrues[i].prix);
                     }
                     printf("0. Annuler\n> ");
-                    int recrueChoix;
-                    scanf("%d", &recrueChoix);
+                    
+                    initialiserNCurses();
+                    int recrueChoix = menuRecrutement(recrues[0].nom, recrues[1].nom, recrues[2].nom,
+                                                       recrues[0].prix, recrues[1].prix, recrues[2].prix);
+                    terminerNCurses();
 
                     if (recrueChoix >= 1 && recrueChoix <= 3) {
                         Candidat *c = &recrues[recrueChoix-1];
@@ -353,10 +386,15 @@ void ouvrirMagasin(Vaisseau *joueur) {
                 } else if (renvoi == 1) {
                     printf(COLOR_RED "Impossible de vendre le Commandant ! Qui piloterait ?\n" COLOR_RESET);
                 }
+                attendreJoueur();
+                initialiserNCurses();
             }
         }
         
-        if (categorie == 5) sauvegarderPartie(joueur); // Sauvegarde en quittant
+        if (categorie == 5) {
+            terminerNCurses();
+            sauvegarderPartie(joueur); // Sauvegarde en quittant
+        }
         if (categorie != 5) SLEEP_MS(800);
     }
 }
