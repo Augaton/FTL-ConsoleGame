@@ -29,6 +29,10 @@ typedef struct {
 ThemeCouleurs themeCyber;
 int ncursesInitialise = 0;
 
+// Buffer global pour les logs de combat
+static char logsCombaT[10][100];
+static int nbLogs = 0;
+
 void initialiserTheme() {
     // Vérifier si le terminal supporte les couleurs
     if (!has_colors()) {
@@ -146,6 +150,128 @@ void animationScan(int maxY, int maxX) {
 
 // Déclaration anticipée
 void afficherHUD(Vaisseau *v);
+
+// Version du menu pour le combat avec affichage des deux vaisseaux et logs à droite
+int menuInteractifCombat(const char *titre, OptionMenu options[], int nbOptions, Vaisseau *joueur, Vaisseau *ennemi) {
+    if (!ncursesInitialise) {
+        initialiserNCurses();
+    }
+    
+    int highlight = 0;
+    int choix = -1;
+    int touche;
+    int maxY, maxX;
+
+    getmaxyx(stdscr, maxY, maxX);
+
+    int menuHauteur = nbOptions + 9;
+    int menuLargeur = 50;
+    if (menuLargeur > maxX - 4) menuLargeur = maxX - 4;
+    
+    int startX = 2;
+    int logsStartX = startX + menuLargeur + 3;
+    int logsLargeur = maxX - logsStartX - 2;
+
+    while(1) {
+        clear();
+
+        // AFFICHER HUD COMBAT AVEC LES DEUX VAISSEAUX
+        afficherHUDCombat(joueur, ennemi);
+
+        int startY = (maxY - menuHauteur) / 2 + 2;
+        
+        appliquerCouleur(themeCyber.normal);
+        
+        // Cadre principal MENU
+        afficherCadre(startY, startX, menuHauteur, menuLargeur);
+        
+        // Titre
+        appliquerCouleur(themeCyber.titre);
+        int titrePosX = startX + (menuLargeur - strlen(titre)) / 2;
+        mvprintw(startY + 2, titrePosX, " %s ", titre);
+        retirerCouleur(themeCyber.titre);
+        
+        // Ligne de séparation après titre
+        afficherTraiteur(startY + 3, startX, menuLargeur);
+        
+        // Options
+        for(int i = 0; i < nbOptions; i++) {
+            int y = startY + 5 + i;
+            if(i == highlight) {
+                appliquerCouleur(themeCyber.selection);
+                
+                for (int j = 0; j < menuLargeur - 2; j++) {
+                    mvaddch(y, startX + 1 + j, ' ');
+                }
+                
+                mvprintw(y, startX + 2, " > %s ", options[i].label);
+                retirerCouleur(themeCyber.selection);
+            } else {
+                appliquerCouleur(themeCyber.normal);
+                mvprintw(y, startX + 3, "%s", options[i].label);
+                retirerCouleur(themeCyber.normal);
+            }
+        }
+        
+        // Ligne de séparation avant instructions
+        afficherTraiteur(startY + menuHauteur - 3, startX, menuLargeur);
+        
+        // Instructions
+        appliquerCouleur(themeCyber.accent);
+        char instructions[] = "UP/DOWN: Nav. | ENTER: OK";
+        int instrPosX = startX + (menuLargeur - strlen(instructions)) / 2;
+        mvprintw(startY + menuHauteur - 2, instrPosX, "%s", instructions);
+        retirerCouleur(themeCyber.accent);
+        
+        // === AFFICHAGE LOGS A DROITE ===
+        if (logsLargeur > 5) {
+            afficherCadre(startY, logsStartX, menuHauteur, logsLargeur);
+            
+            appliquerCouleur(themeCyber.titre);
+            mvprintw(startY + 2, logsStartX + 2, " JOURNAL COMBAT ");
+            retirerCouleur(themeCyber.titre);
+            
+            afficherTraiteur(startY + 3, logsStartX, logsLargeur);
+            
+            // Afficher les logs
+            int nbLogsAffiche = (nbLogs > menuHauteur - 8) ? (menuHauteur - 8) : nbLogs;
+            int logStartIdx = (nbLogs > menuHauteur - 8) ? (nbLogs - (menuHauteur - 8)) : 0;
+            
+            appliquerCouleur(themeCyber.normal);
+            for (int i = 0; i < nbLogsAffiche; i++) {
+                int logIdx = logStartIdx + i;
+                int y = startY + 5 + i;
+                
+                // Tronquer le message s'il est trop long
+                char logMsg[35];
+                strncpy(logMsg, logsCombaT[logIdx], 34);
+                logMsg[34] = '\0';
+                
+                mvprintw(y, logsStartX + 1, " %s", logMsg);
+            }
+            retirerCouleur(themeCyber.normal);
+        }
+        
+        refresh();
+        touche = getch();
+
+        switch(touche) {
+            case KEY_UP:
+                if(highlight > 0) highlight--;
+                break;
+            case KEY_DOWN:
+                if(highlight < nbOptions - 1) highlight++;
+                break;
+            case 10: // Entrée
+                choix = options[highlight].id;
+                break;
+        }
+
+        if(choix != -1) break;
+    }
+
+    return choix;
+}
 
 // ==================== MENU INTERACTIF AMÉLIORÉ ====================
 
@@ -419,17 +545,91 @@ void afficherHUD(Vaisseau *v) {
     refresh();
 }
 
-int menuCombatAction(Vaisseau *v) {
+// HUD Combat avec affichage des deux vaisseau
+void afficherHUDCombat(Vaisseau *joueur, Vaisseau *ennemi) {
+    int max_x;
+    int max_y = 0;
+    getmaxyx(stdscr, max_y, max_x);
+    (void)max_y;
+
+    // Bandeau supérieur
+    attron(COLOR_PAIR(1) | A_BOLD);
+    mvhline(0, 0, ' ', max_x);
+    
+    // Gauche : Commandant
+    mvprintw(0, 2, " COMMANDANT: %s ", joueur->nom);
+    
+    // Centre : vs
+    mvprintw(0, max_x/2 - 2, " VS ");
+    
+    // Droite : Ennemi
+    mvprintw(0, max_x - strlen(ennemi->nom) - 3, " %s ", ennemi->nom);
+    attroff(COLOR_PAIR(1) | A_BOLD);
+
+    // Ligne 1 : Coques
+    // Joueur - GAUCHE
+    mvprintw(1, 2, "COQUE: ");
+    appliquerCouleur(themeCyber.normal);
+    int barSize = 12;
+    for(int i=0; i<barSize; i++) {
+        if(i < (joueur->coque * barSize / joueur->coqueMax)) addch('/');
+        else addch('.');
+    }
+    printw(" %d/%d", joueur->coque, joueur->coqueMax);
+    
+    // Ennemi - DROITE  
+    mvprintw(1, max_x - 35, "COQUE ENI: ");
+    for(int i=0; i<barSize; i++) {
+        if(i < (ennemi->coque * barSize / ennemi->coqueMax)) addch('/');
+        else addch('.');
+    }
+    printw(" %d/%d", ennemi->coque, ennemi->coqueMax);
+
+    // Ligne 2 : Boucliers et missiles (côté du joueur)
+    mvprintw(2, 2, "BOUCLIER: %d/%d", joueur->bouclierActuel, joueur->systemeBouclier.efficacite);
+    mvprintw(2, 25, "MISSILES: %d", joueur->missiles);
+    mvprintw(2, max_x - 35, "BOUCLIER ENI: %d/%d", ennemi->bouclierActuel, ennemi->systemeBouclier.efficacite);
+
+    // Ligne 3 : Séparation
+    afficherTraiteur(3, 0, max_x);
+    refresh();
+}
+
+// Ajouter un log de combat
+void ajouterLogCombat(const char *message) {
+    if (nbLogs < 10) {
+        strncpy(logsCombaT[nbLogs], message, 99);
+        logsCombaT[nbLogs][99] = '\0';
+        nbLogs++;
+    } else {
+        // Décaler les logs
+        for (int i = 0; i < 9; i++) {
+            strcpy(logsCombaT[i], logsCombaT[i+1]);
+        }
+        strncpy(logsCombaT[9], message, 99);
+        logsCombaT[9][99] = '\0';
+    }
+}
+
+// Réinitialiser les logs
+void reinitialiserLogsCombat(void) {
+    for (int i = 0; i < 10; i++) {
+        logsCombaT[i][0] = '\0';
+    }
+    nbLogs = 0;
+}
+
+int menuCombatAction(Vaisseau *joueur, Vaisseau *ennemi) {
     OptionMenu options[] = {
         {"[A] ATTAQUER", 1},
         {"[B] RECHARGER BOUCLIERS", 2},
         {"[C] TENTER LA FUITE", 3},
         {"[D] ANALYSER LE VAISSEAU", 4}
     };
-    return menuInteractif("ACTIONS DISPONIBLES", options, 4, v);
+    return menuInteractifCombat("ACTIONS DISPONIBLES", options, 4, joueur, ennemi);
 }
 
-int menuChoixCible(int chanceCoque, int chanceSysteme, Vaisseau *v) {
+int menuChoixCible(int chanceCoque, int chanceSysteme, Vaisseau *joueur, Vaisseau *ennemi) {
     char coque_label[50];
     char armes_label[50];
     char moteurs_label[50];
@@ -443,10 +643,10 @@ int menuChoixCible(int chanceCoque, int chanceSysteme, Vaisseau *v) {
         {armes_label, 2},
         {moteurs_label, 3}
     };
-    return menuInteractif("CHOIX DE LA CIBLE", options, 3, v);
+    return menuInteractifCombat("CHOIX DE LA CIBLE", options, 3, joueur, ennemi);
 }
 
-int menuChoixArme(int missiles, Vaisseau *v) {
+int menuChoixArme(int missiles, Vaisseau *joueur, Vaisseau *ennemi) {
     char missile_label[50];
     snprintf(missile_label, 50, "[B] MISSILE (Stock: %d)", missiles);
     
@@ -454,7 +654,7 @@ int menuChoixArme(int missiles, Vaisseau *v) {
         {"[A] CANON LASER", 1},
         {missile_label, 2}
     };
-    return menuInteractif("CHOIX DE L'ARME", options, 2, v);
+    return menuInteractifCombat("CHOIX DE L'ARME", options, 2, joueur, ennemi);
 }
 
 int menuMagasinPrincipal(int ferraille, const char *promo, int pourcentPromo) {

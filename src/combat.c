@@ -129,6 +129,9 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
     int tourFini = 0; 
     int estBossFinal = (strcmp(ennemi->nom, "DESTROYEUR STELLAIRE") == 0);
 
+    // REINITIALISER LES LOGS POUR CE TOUR
+    reinitialiserLogsCombat();
+
     // RESET DEBUFFS DEBUT DE TOUR
     if (joueur->debuffMoteur > 0) joueur->debuffMoteur--;
     if (joueur->debuffArme > 0) joueur->debuffArme--;
@@ -143,7 +146,7 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
 
         // Réinitialiser ncurses pour le menu
         initialiserNCurses();
-        choixAction = menuCombatAction(joueur);
+        choixAction = menuCombatAction(joueur, ennemi);
 
         // --- 1. ATTAQUER ---
         if (choixAction == 1) {
@@ -162,17 +165,18 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
             if (chanceSysteme < 0) chanceSysteme = 0;
 
             // Menu Cible (ncurses)
-            choixCible = menuChoixCible(chanceCoque, chanceSysteme, joueur);
+            choixCible = menuChoixCible(chanceCoque, chanceSysteme, joueur, ennemi);
             if (choixCible == 0) continue; 
 
             // Menu Arme (ncurses)
-            choixArme = menuChoixArme(joueur->missiles, joueur);
+            choixArme = menuChoixArme(joueur->missiles, joueur, ennemi);
             if (choixArme == 0) continue;
 
             // Afficher résultat du tir (printf)
             terminerNCurses(); 
 
             // EXECUTION TIR
+            ajouterLogCombat("Feu!");
             printf(COLOR_BOLD COLOR_RED "\nFeu !" COLOR_RESET);
             SLEEP_MS(600);
 
@@ -188,6 +192,7 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
             }
             
             if (checkEsquive(esquivePourCalcul, joueur)) { 
+                ajouterLogCombat("Esquive! Tir échoué");
                 printf(COLOR_RED "\nLe tir passe a cote de la cible visée !\n" COLOR_RESET);
                 SLEEP_MS(800);
             } else {
@@ -199,6 +204,9 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
 
                 
                 if (bonusSoldatDmg > 0) {
+                    char logMsg[60];
+                    sprintf(logMsg, "[SOLDAT] Tir +%d", bonusSoldatDmg);
+                    ajouterLogCombat(logMsg);
                     degats += bonusSoldatDmg;
                     printf(COLOR_RED "[SOLDAT] Tir optimisé ! (+%d Dégât)\n" COLOR_RESET, bonusSoldatDmg);
                 }
@@ -209,17 +217,25 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
                     joueur->missiles--;
                     degats += calculerDegats(3 + (joueur->distanceParcourue/5), joueur->moteurs, bonusSoldatCrit);
                     estTouche = 1;
+                    char logMsg[60];
+                    sprintf(logMsg, "MISSILE Impact! -%d", degats);
+                    ajouterLogCombat(logMsg);
                     printf("\n" COLOR_RED "MISSILE : Impact direct ! (-%d)" COLOR_RESET "\n", degats);
                 } else if (choixArme == 2) {
+                    ajouterLogCombat("Pas assez de missiles!");
                     printf("Click... Plus de missiles !\n");
                 } else {
                     if (ennemi->bouclierActuel >= degats) {
                         ennemi->bouclierActuel -= degats;
+                        ajouterLogCombat("Bouclier ennemi OK");
                         printf(COLOR_CYAN "\nLe bouclier ennemi absorbe le tir.\n" COLOR_RESET);
                     } else {
                         degats = degats - ennemi->bouclierActuel;
                         ennemi->bouclierActuel = 0;
                         estTouche = 1;
+                        char logMsg2[60];
+                        sprintf(logMsg2, "Coque! -%d PV", degats);
+                        ajouterLogCombat(logMsg2);
                         printf(COLOR_RED "\nCoque touchée ! (-%d)\n" COLOR_RESET, degats);
                     }
                 }
@@ -228,10 +244,12 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
                     ennemi->coque -= degats;
                     if (choixCible == 2) {
                         ennemi->debuffArme = 2;
+                        ajouterLogCombat("ARMES ENNEMIES OK!");
                         printf(COLOR_MAGENTA ">>> ARMES ENNEMIES ENDOMMAGEES ! <<<\n" COLOR_RESET);
                     }
                     if (choixCible == 3) {
                         ennemi->debuffMoteur = 2;
+                        ajouterLogCombat("MOTEURS ENNEMI HS!");
                         printf(COLOR_MAGENTA ">>> MOTEURS ENNEMIS CRITIQUES ! <<<\n" COLOR_RESET);
                     }
                     
@@ -252,12 +270,14 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
             // Recharge automatique
             if (joueur->bouclierActuel < bouclierMaxReel) { // Utilise la nouvelle limite
                 joueur->bouclierActuel++;
+                ajouterLogCombat("[SYSTEME] +1 Bouclier");
                 printf(COLOR_BLUE "[SYSTEME] Recharge passive : +1 Bouclier.\n" COLOR_RESET);
 
                 // Check du bonus "Double Recharge"
                 int chanceBonus = getBonusRechargeBouclier(joueur); // Nouveau nom
                 if (chanceBonus > 0 && (rand()%100 < chanceBonus) && joueur->bouclierActuel < bouclierMaxReel) {
                     joueur->bouclierActuel++;
+                    ajouterLogCombat("[INGENIEUR] +1 Bonus!");
                     printf(COLOR_CYAN "[INGENIEUR] Surcharge des condensateurs ! (+1 Extra)\n" COLOR_RESET);
                     
                     // XP Ingénieur
@@ -268,6 +288,7 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
             }
 
             if (tenterReparationAutomatique(joueur)) {
+                ajouterLogCombat("[INGENIEUR] +1 Coque!");
                 printf(COLOR_GREEN "[INGENIEUR] \"J'ai colmaté une brèche !\" (+1 Coque)\n" COLOR_RESET);
                 SLEEP_MS(800);
             }
@@ -286,7 +307,9 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
                 joueur->bouclierActuel = joueur->systemeBouclier.efficacite;
             }
             int gainReel = joueur->bouclierActuel - avant;
-
+            char logMsg[60];
+            sprintf(logMsg, "Recharge +%d [%d/%d]", gainReel, joueur->bouclierActuel, joueur->systemeBouclier.efficacite);
+            ajouterLogCombat(logMsg);
             printf(COLOR_BLUE "\n[MANOEUVRE] Energie détournée vers les boucliers !\n" COLOR_RESET);
             printf("Récupération de " COLOR_CYAN "+%d barres" COLOR_RESET " (Total: %d/%d)\n", 
                 gainReel, joueur->bouclierActuel, joueur->systemeBouclier.efficacite);
@@ -295,6 +318,7 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
             int chanceBonus = getBonusRechargeBouclier(joueur);
             if (chanceBonus > 0 && (rand()%100 < chanceBonus) && joueur->bouclierActuel < joueur->systemeBouclier.efficacite) {
                 joueur->bouclierActuel++;
+                ajouterLogCombat("[INGENIEUR] +1 Bonus!");
                 printf(COLOR_CYAN "[INGENIEUR] Surcharge des boucliers ! (+1 Extra)\n" COLOR_RESET);
                 for(int i=0; i<3; i++) {
                     if(joueur->equipage[i].role == ROLE_INGENIEUR) gagnerXP(&joueur->equipage[i], 20);
@@ -319,17 +343,22 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
         else if (choixAction == 3) {
             terminerNCurses();
             if (estBossFinal) {
+                ajouterLogCombat("ERREUR: Champ FTL bloque!");
                 printf(COLOR_RED "\n[ERREUR] Le vaisseau mère génère un champ inhibiteur ! Saut FTL impossible !\n" COLOR_RESET);
                 SLEEP_MS(2000);
                 initialiserNCurses();
             } else {
                 joueur->chargeFTL++;
+                char logMsg[60];
+                sprintf(logMsg, "FTL Charge [%d/%d]", joueur->chargeFTL, joueur->maxchargeFTL);
+                ajouterLogCombat(logMsg);
                 printf(COLOR_YELLOW "\nChargement FTL...\n" COLOR_RESET);
 
                 // --- BONUS PILOTE (Vitesse FTL) ---
                 int chanceTurbo = getBonusVitesseFTL(joueur);
                 if (chanceTurbo > 0 && (rand() % 100) < chanceTurbo) {
                     joueur->chargeFTL++;
+                    ajouterLogCombat("[PILOTE] Trajet +1!");
                     printf(COLOR_CYAN "[PILOTE] Calcul de trajectoire optimisé ! (+1 Charge Extra)\n" COLOR_RESET);
                     
                     // XP Pilote pour la fuite réussie
@@ -358,6 +387,7 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
 
     // --- TOUR DE L'ENNEMI ---
     if (ennemi->coque > 0) {
+        ajouterLogCombat("\n--- RIPOSTE ENNEMI ---");
         printf("\nL'ennemi riposte...");
         SLEEP_MS(800);
 
@@ -366,12 +396,16 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
         int esquiveJoueur = 10 + (joueur->moteurs * 5) + bonusPilote;
 
         if (bonusPilote > 0) {
+            char logMsg[60];
+            sprintf(logMsg, "[PILOTE] Esquive +%d", bonusPilote);
+            ajouterLogCombat(logMsg);
             printf(COLOR_CYAN "[PILOTE] Manoeuvre evasive ! (+%d%% Esquive)\n" COLOR_RESET, bonusPilote);
         }
         
         // Fuite Ennemie si PV bas
         if (ennemi->coque < (ennemi->coqueMax * 0.3) && !estBossFinal && ennemi->debuffMoteur == 0) {
              ennemi->chargeFTL++;
+             ajouterLogCombat("Ennemi charge FTL!");
              printf(COLOR_RED "\n[ALERTE] L'ennemi charge son FTL pour fuir !\n" COLOR_RESET);
              if (ennemi->chargeFTL >= ennemi->maxchargeFTL) {
                  ennemi->coque = 0; return;
@@ -381,6 +415,7 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
         
         // --- RÉSOLUTION TIR ENNEMI ---
         if (checkEsquive(esquiveJoueur, joueur)) {
+            ajouterLogCombat("ESQUIVE! Tir ennemi evite");
             printf(COLOR_GREEN "\nESQUIVE ! Vous évitez le tir.\n" COLOR_RESET);
 
             // --- XP PILOTE ---
@@ -395,6 +430,7 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
             
             if (ennemi->debuffArme > 0) {
                 degatsEntrants = degatsEntrants / 2;
+                ajouterLogCombat("Armes ennemi endommages");
                 printf(COLOR_YELLOW "\n[CHANCE] Les armes endommagées de l'ennemi tirent faiblement !\n" COLOR_RESET);
             }
             
@@ -402,11 +438,17 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
 
             if (joueur->bouclierActuel >= degatsEntrants) {
                 joueur->bouclierActuel -= degatsEntrants;
+                char logMsg[60];
+                sprintf(logMsg, "Bouclier -%d", degatsEntrants);
+                ajouterLogCombat(logMsg);
                 printf(COLOR_CYAN "\nBouclier tient bon (-%d).\n" COLOR_RESET, degatsEntrants);
             } else {
                 int surplus = degatsEntrants - joueur->bouclierActuel;
                 joueur->bouclierActuel = 0;
                 joueur->coque -= surplus;
+                char logMsg2[60];
+                sprintf(logMsg2, "Coque touchee! -%d", surplus);
+                ajouterLogCombat(logMsg2);
                 printf(COLOR_RED "\nALERTE ! Dégâts coque subis: -%d\n" COLOR_RESET, surplus);
 
                 // --- DÉGÂTS SUR L'ÉQUIPAGE ---

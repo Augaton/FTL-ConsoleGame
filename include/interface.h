@@ -20,9 +20,16 @@ int menuInteractif(const char *titre, OptionMenu options[], int nbOptions, Vaiss
 void afficherDialogueSimple(const char *titre, const char *message);
 
 // Menus de combat
-int menuCombatAction(Vaisseau *v);
-int menuChoixCible(int chanceCoque, int chanceSysteme, Vaisseau *v);
-int menuChoixArme(int missiles, Vaisseau *v);
+int menuCombatAction(Vaisseau *joueur, Vaisseau *ennemi);
+int menuChoixCible(int chanceCoque, int chanceSysteme, Vaisseau *joueur, Vaisseau *ennemi);
+int menuChoixArme(int missiles, Vaisseau *joueur, Vaisseau *ennemi);
+
+// HUD affichage
+void afficherHUDCombat(Vaisseau *joueur, Vaisseau *ennemi);
+
+// Gestion des logs de combat
+void ajouterLogCombat(const char *message);
+void reinitialiserLogsCombat(void);
 
 // Menus du magasin
 int menuMagasinPrincipal(int ferraille, const char *promo, int pourcentPromo);
