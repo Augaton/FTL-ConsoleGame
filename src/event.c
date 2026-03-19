@@ -12,6 +12,11 @@ static void printNavLine(const char *text) {
     printf("| %-76.76s |\n", text);
 }
 
+static void afficherTitreNeon(const char *couleur, const char *titre) {
+    const char *c = (couleur != NULL) ? couleur : COLOR_CYAN;
+    printf("\n" COLOR_BOLD "%s>>> %s <<<" COLOR_RESET "\n", c, titre);
+}
+
 // --- Affichage seul du HUD de navigation ---
 static void afficherHUDNavigation(Vaisseau *joueur) {
     effacerEcran();
@@ -105,7 +110,11 @@ static int traiterChoixNavigation(Vaisseau *joueur, int choix) {
             "Oui, lancer l'autodestruction",
             "Non, retour au cockpit"
         };
-        int confirm = lireMenuInteractif(NULL, optionsAutodestruction, 2, 2, 0);
+        int confirm = lireMenuInteractif(COLOR_RED "CONFIRMATION AUTODESTRUCTION" COLOR_RESET,
+                         optionsAutodestruction,
+                         2,
+                         2,
+                         0);
         if (confirm == 1) {
             printf(COLOR_RED "\nProtocole d'autodestruction engagé...\n" COLOR_RESET);
             SLEEP_MS(1000);
@@ -222,8 +231,10 @@ const char* inspecterBalise() {
 
 
 void explorerSecteurActuel(Vaisseau *joueur) {
+    afficherTitreNeon(COLOR_CYAN, "EXPLORATION DES ENVIRONS");
+
     if (joueur->carburant < 1) {
-        printf(COLOR_RED "\n[ALERTE CRITIQUE] RÉSERVOIRS VIDES !\n" COLOR_RESET);
+        printf(COLOR_RED "\n[ALERTE CRITIQUE] RESERVOIRS VIDES !\n" COLOR_RESET);
         printf("Moteurs inactifs. Impossible d'explorer ou de sauter.\n");
         SLEEP_MS(1000);
         
@@ -234,7 +245,11 @@ void explorerSecteurActuel(Vaisseau *joueur) {
             "Lancer le signal (50% combat / 50% aide)",
             "Ne rien faire (rester bloque)"
         };
-        int r = lireMenuInteractif(NULL, optionsSOS, 2, 1, 0);
+        int r = lireMenuInteractif(COLOR_RED "PROTOCOLE SOS" COLOR_RESET,
+                       optionsSOS,
+                       2,
+                       1,
+                       0);
         
         if (r == 1) {
             printf("Transmission du signal de détresse sur toutes les bandes...\n");
@@ -266,7 +281,7 @@ void explorerSecteurActuel(Vaisseau *joueur) {
     joueur->carburant--;
     joueur->explorationActuelle++;
 
-    printf(COLOR_YELLOW "\nExploration des environs (-1 ⚡)... [Signal %d/%d]\n" COLOR_RESET, 
+    printf(COLOR_YELLOW COLOR_BOLD "\nExploration des environs (-1 ⚡)... [Signal %d/%d]\n" COLOR_RESET,
            joueur->explorationActuelle, joueur->explorationMax);
     
     for(int i=0; i<3; i++) { printf("."); fflush(stdout); SLEEP_MS(500); }
@@ -299,7 +314,8 @@ void descriptionSecteurVide(Vaisseau *joueur) {
         "Rien. Juste l'obscurité et le ronronnement rassurant de vos moteurs."
     };
     
-    printf("\n" COLOR_CYAN "[EXPLORATION]" COLOR_RESET " %s\n", ambiances[rand() % 7]);
+    afficherTitreNeon(COLOR_CYAN, "SECTEUR CALME");
+    printf(COLOR_CYAN "[EXPLORATION] " COLOR_RESET "%s\n", ambiances[rand() % 7]);
 
     int chance = rand() % 100;
     if (chance < 30) {
@@ -326,7 +342,8 @@ void executerEvenement(Vaisseau *joueur, const char* type) {
     const char* evenementFinal = type;
 
     if (strcmp(type, "Nebuleuse (Inconnu - Gratuit)") == 0) {
-        printf("\n[SYSTEME] Entree dans la nebuleuse. Capteurs brouilles...\n");
+        afficherTitreNeon(COLOR_MAGENTA, "NEBULEUSE");
+        printf("[SYSTEME] Entree dans la nebuleuse. Capteurs brouilles...\n");
         int r = rand() % 100;
         if (r < 50) evenementFinal = "Signal Hostile (Combat)";
         else if (r < 80) evenementFinal = "Signal de Detresse";
@@ -347,6 +364,8 @@ void executerEvenement(Vaisseau *joueur, const char* type) {
 }
 
 void lancerEvenementAleatoire(Vaisseau *joueur) {
+    afficherTitreNeon(COLOR_MAGENTA, "EVENEMENT DYNAMIQUE DETECTE");
+
     // Seed chaotique : temps + adresse mémoire (portable) + seed secteur
    unsigned int seedChaos = joueur->seedSecteur ^ (joueur->distanceParcourue * 2654435761u) ^ (joueur->explorationActuelle * 40503u);
     srand(seedChaos);
@@ -395,7 +414,11 @@ void evenementDetresse(Vaisseau *joueur) {
         "Envoyer un drone de reparation (cout: 1 missile)",
         "Ignorer le signal"
     };
-    int choix = lireMenuInteractif(NULL, optionsDetresse, 5, 1, 0);
+    int choix = lireMenuInteractif(COLOR_YELLOW "CHOIX DE SAUVETAGE" COLOR_RESET,
+                                   optionsDetresse,
+                                   5,
+                                   1,
+                                   0);
 
     printf("\n");
     
@@ -467,7 +490,11 @@ void evenementEpaveDerivante(Vaisseau *joueur) {
         optionArmes,
         "Tirer un missile pour creer une breche (cout: 1 missile)"
     };
-    int choix = lireMenuInteractif(NULL, optionsEpave, 4, 1, 0);
+    int choix = lireMenuInteractif(COLOR_CYAN "PROTOCOLE EPAVE" COLOR_RESET,
+                                   optionsEpave,
+                                   4,
+                                   1,
+                                   0);
 
     printf("\n");
 
@@ -561,7 +588,11 @@ void evenementPluieAsteroides(Vaisseau *joueur) {
         optionBouclier,
         optionMissiles
     };
-    int choix = lireMenuInteractif(NULL, optionsAsteroides, 3, 1, 0);
+    int choix = lireMenuInteractif(COLOR_YELLOW "MANOEUVRES DANS LE CHAMP D'ASTEROIDES" COLOR_RESET,
+                                   optionsAsteroides,
+                                   3,
+                                   1,
+                                   0);
 
     if (choix == 2 && joueur->systemeBouclier.efficacite >= 3) {
         printf(COLOR_GREEN "\nLes rochers ricochent inoffensivement sur vos boucliers surchargés.\n");
@@ -634,7 +665,11 @@ void evenementCapsuleSurvie(Vaisseau *joueur) {
         "L'ouvrir avec precaution",
         "La recycler a distance (sur mais peu rentable)"
     };
-    int choix = lireMenuInteractif(NULL, optionsCapsule, 2, 1, 0);
+    int choix = lireMenuInteractif(COLOR_CYAN "TRAITEMENT DE LA CAPSULE" COLOR_RESET,
+                                   optionsCapsule,
+                                   2,
+                                   1,
+                                   0);
 
     if (choix == 1) {
         int r = rand() % 100;
@@ -673,7 +708,11 @@ void evenementMarchandAmbulant(Vaisseau *joueur) {
         "Ignorer",
         "Attaquer le marchand (piraterie)"
     };
-    int choix = lireMenuInteractif(NULL, optionsMarchand, 4, 1, 0);
+    int choix = lireMenuInteractif(COLOR_YELLOW "NEGOCIATION MARCHANDE" COLOR_RESET,
+                                   optionsMarchand,
+                                   4,
+                                   1,
+                                   0);
 
     if (choix == 1) {
         if (joueur->ferraille >= MARCHAND_COUT_CARBURANT) {
@@ -831,7 +870,11 @@ void evenementLoterie(Vaisseau *joueur) {
         "Passer votre chemin",
         "Braquer le casino (suicidaire - 3 vagues d'ennemis)"
     };
-    int choix = lireMenuInteractif(NULL, optionsCasino, 4, 3, 0);
+    int choix = lireMenuInteractif(COLOR_MAGENTA "TERMINAL CASINO" COLOR_RESET,
+                                   optionsCasino,
+                                   4,
+                                   3,
+                                   0);
 
     if (choix == 1 && joueur->ferraille >= CASINO_MISE_MIN) {
         joueur->ferraille -= CASINO_MISE_MIN;
@@ -885,7 +928,11 @@ void evenementPeagePirate(Vaisseau *joueur) {
         "Refuser et engager le combat",
         optionIntimidation
     };
-    int choix = lireMenuInteractif(NULL, optionsPeage, 3, 1, 0);
+    int choix = lireMenuInteractif(COLOR_RED "ULTIMATUM PIRATE" COLOR_RESET,
+                                   optionsPeage,
+                                   3,
+                                   1,
+                                   0);
 
     if (choix == 1) {
         if (joueur->ferraille >= PEAGE_PIRATE_COUT) {
@@ -929,7 +976,11 @@ void evenementErmite(Vaisseau *joueur) {
         optionRenfort,
         "Partir sans rien dire"
     };
-    int choix = lireMenuInteractif(NULL, optionsErmite, 3, 1, 0);
+    int choix = lireMenuInteractif(COLOR_MAGENTA "PROPOSITION DE L'ERMITE" COLOR_RESET,
+                                   optionsErmite,
+                                   3,
+                                   1,
+                                   0);
 
     if (choix == 1) {
         int r = rand() % 100;
@@ -990,7 +1041,11 @@ void evenementStationMercenaire(Vaisseau *joueur) {
             optionRecruter,
             "Refuser"
         };
-        int choix = lireMenuInteractif(NULL, optionsMercenaire, 2, 1, 0);
+        int choix = lireMenuInteractif(COLOR_MAGENTA "CONTRAT MERCENAIRE" COLOR_RESET,
+                           optionsMercenaire,
+                           2,
+                           1,
+                           0);
 
         if (choix == 1) {
             if (joueur->ferraille >= MERCENAIRE_COUT) {
