@@ -192,6 +192,7 @@ void lancerSequenceDeSaut(Vaisseau *joueur) {
     if (choixSaut != 1 && choixSaut != 2) destination = baliseB; 
 
     // --- MISE À JOUR DU SECTEUR POUR LA SAUVEGARDE ---
+    sauvegarderCheckpoint(joueur);
     strncpy(joueur->secteurActuel, destination, 49);
     joueur->secteurActuel[49] = '\0'; 
     joueur->explorationActuelle = 0;
@@ -278,6 +279,7 @@ void explorerSecteurActuel(Vaisseau *joueur) {
         return;
     }
 
+    sauvegarderCheckpoint(joueur);
     joueur->carburant--;
     joueur->explorationActuelle++;
 

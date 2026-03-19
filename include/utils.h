@@ -34,6 +34,9 @@ int chargerPartie(Vaisseau *joueur);
 void supprimerSauvegarde();
 void finaliserEvenement(Vaisseau *joueur);
 
+void enregistrerJoueur(Vaisseau *v);
+void sauvegarderCheckpoint(Vaisseau *v);
+
 int lireEntierSecurise(int min, int max);
 int lireChoix(int max);
 int lireChoixIntervalle(int min, int max, int valeurInitiale);

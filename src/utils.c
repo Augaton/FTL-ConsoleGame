@@ -3,10 +3,62 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 #ifndef _WIN32
 #include <termios.h>
 #include <unistd.h>
 #endif
+
+/* --- Gestionnaire d'interruption (Ctrl+C) --- */
+static Vaisseau *g_joueur_ptr        = NULL;
+static Vaisseau  g_checkpoint;
+static int       g_checkpoint_valide = 0;
+
+#ifndef _WIN32
+static struct termios g_termios_original;
+static int            g_termios_original_saved = 0;
+
+static void restaurerTerminal(void) {
+    if (g_termios_original_saved)
+        tcsetattr(STDIN_FILENO, TCSANOW, &g_termios_original);
+}
+
+static void gestionSIGINT(int sig) {
+    (void)sig;
+    restaurerTerminal();
+    printf("\n\n" COLOR_YELLOW "[SYSTEME] Interruption reçue." COLOR_RESET "\n");
+    if (g_checkpoint_valide && g_joueur_ptr != NULL) {
+        *g_joueur_ptr = g_checkpoint;
+        printf(COLOR_GREEN "[SYSTEME] Opération annulée — état précédent restauré.\n" COLOR_RESET);
+        sauvegarderPartie(g_joueur_ptr);
+    }
+    exit(0);
+}
+#else
+static void gestionSIGINT(int sig) {
+    (void)sig;
+    printf("\n\n[SYSTEME] Interruption reçue.\n");
+    if (g_checkpoint_valide && g_joueur_ptr != NULL) {
+        *g_joueur_ptr = g_checkpoint;
+        sauvegarderPartie(g_joueur_ptr);
+    }
+    exit(0);
+}
+#endif
+
+void enregistrerJoueur(Vaisseau *v) {
+    g_joueur_ptr = v;
+#ifndef _WIN32
+    if (tcgetattr(STDIN_FILENO, &g_termios_original) == 0)
+        g_termios_original_saved = 1;
+#endif
+    signal(SIGINT, gestionSIGINT);
+}
+
+void sauvegarderCheckpoint(Vaisseau *v) {
+    g_checkpoint        = *v;
+    g_checkpoint_valide = 1;
+}
 
 enum {
     KEY_NONE = 0,
@@ -20,6 +72,14 @@ static int clamp(int value, int min, int max) {
     if (value < min) return min;
     if (value > max) return max;
     return value;
+}
+
+static void viderBufferEntree(void) {
+#ifndef _WIN32
+    tcflush(STDIN_FILENO, TCIFLUSH);
+#else
+    FlushConsoleInputBuffer(GetStdHandle(STD_INPUT_HANDLE));
+#endif
 }
 
 static int lireToucheNavigation(void) {
@@ -116,6 +176,7 @@ void afficherVictoire(Vaisseau *joueur) {
 }
 
 void attendreJoueur() {
+    viderBufferEntree();
     printf(COLOR_CYAN "\n[ Appuyez sur ENTREE pour continuer ]" COLOR_RESET);
     char buffer[8];
     if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
@@ -401,6 +462,8 @@ int lireChoix(int max) {
 
 int lireMenuInteractif(const char *titre, const char *const options[], int nbOptions, int valeurInitiale, int autoriserRetourZero) {
     if (nbOptions <= 0 || options == NULL) return 0;
+
+    viderBufferEntree();
 
     int min = autoriserRetourZero ? 0 : 1;
     int max = nbOptions;

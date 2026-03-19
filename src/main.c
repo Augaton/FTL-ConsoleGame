@@ -67,6 +67,8 @@ int main() {
         initialiserNouvellePartie(&joueur);
     }
 
+    enregistrerJoueur(&joueur);
+
     // --- BOUCLE PRINCIPALE DU JEU ---
     while (joueur.coque > 0 && joueur.distanceParcourue < joueur.distanceObjectif) {
         
