@@ -289,7 +289,11 @@ void explorerSecteurActuel(Vaisseau *joueur) {
     for(int i=0; i<3; i++) { printf("."); fflush(stdout); SLEEP_MS(500); }
     printf("\n");
 
-    int jet = rand() % 100;
+    /* Déterministe : même seed = même rencontre, impossible à reroll */
+    unsigned int exploSeed = joueur->seedSecteur
+        ^ ((unsigned int)joueur->distanceParcourue * 2654435761u)
+        ^ ((unsigned int)joueur->explorationActuelle * 40503u);
+    int jet = (int)(exploSeed % 100);
 
     if (jet < 35) {
         printf(COLOR_RED "[ALERTE] Patrouille hostile repérée !\n" COLOR_RESET);
