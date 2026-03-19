@@ -14,6 +14,11 @@ const char* getRoleNom(TypeRole role) {
     }
 }
 
+static void imprimerLigneEtatCouleur(const char *couleur, const char *texte) {
+    const char *c = (couleur != NULL) ? couleur : COLOR_RESET;
+    printf("| %s%-56.56s" COLOR_RESET " |\n", c, texte);
+}
+
 void initialiserNouvellePartie(Vaisseau *joueur) {
     // --- 1. STATS DE BASE ---
     joueur->coque = 30;
@@ -30,6 +35,8 @@ void initialiserNouvellePartie(Vaisseau *joueur) {
     joueur->ennemiCoqueActuelle = 0;
     joueur->chargeFTL = 0;
     joueur->maxchargeFTL = 3;
+    joueur->debuffArme = 0;
+    joueur->debuffMoteur = 0;
 
     // Equipement Base
     strcpy(joueur->systemeArme.nom, "Laser Burst Mk1");
@@ -90,15 +97,17 @@ void initialiserNouvellePartie(Vaisseau *joueur) {
     joueur->equipage[2].niveau = 0;
 
     // --- 4. CHOIX DE LA DURÉE ---
-    printf("\n" COLOR_CYAN "--- PARAMÈTRES DE MISSION ---" COLOR_RESET "\n");
-    printf("1. Raid rapide (10 secteurs)\n");
-    printf("2. Mission standard (20 secteurs)\n");
-    printf("3. Longue expédition (40 secteurs)\n");
-    printf("4. Personnalisé\n");
-    printf(COLOR_YELLOW "> " COLOR_RESET);
-    
-    // Utilisation de la fonction sécurisée (Choix entre 1 et 4)
-    int mode = lireEntierSecurise(1, 4);
+    const char *optionsMission[] = {
+        "Raid rapide (10 secteurs)",
+        "Mission standard (20 secteurs)",
+        "Longue expedition (40 secteurs)",
+        "Personnalise"
+    };
+    int mode = lireMenuInteractif(COLOR_CYAN "\n--- PARAMETRES DE MISSION ---" COLOR_RESET,
+                                  optionsMission,
+                                  4,
+                                  2,
+                                  0);
     
     if (mode == 1) joueur->distanceObjectif = 10;
     else if (mode == 2) joueur->distanceObjectif = 20;
@@ -110,14 +119,28 @@ void initialiserNouvellePartie(Vaisseau *joueur) {
         joueur->distanceObjectif = lireEntierSecurise(5, 100);
     }
 
-    // --- 5. GESTION DE LA SEED ---
-    printf("\n" COLOR_CYAN "--- MATRICE DE GÉNÉRATION (SEED) ---" COLOR_RESET "\n");
-    printf("1. Aléatoire (Recommandé)\n");
-    printf("2. Saisir une Seed manuelle\n");
-    printf(COLOR_YELLOW "> " COLOR_RESET);
-    
-    // Utilisation de la fonction sécurisée (Choix entre 1 et 2)
-    int seedMode = lireEntierSecurise(1, 2);
+    // --- 5. CHOIX DE DIFFICULTE ---
+    const char *optionsDifficulte[] = {
+        "Facile (ennemis moins agressifs, stats reduites)",
+        "Normal (experience standard)",
+        "Difficile (IA plus intelligente, ennemis renforces)"
+    };
+    joueur->difficulte = lireMenuInteractif(COLOR_CYAN "\n--- NIVEAU DE DIFFICULTE ---" COLOR_RESET,
+                                            optionsDifficulte,
+                                            3,
+                                            2,
+                                            0);
+
+    // --- 6. GESTION DE LA SEED ---
+    const char *optionsSeed[] = {
+        "Aleatoire (recommande)",
+        "Saisir une seed manuelle"
+    };
+    int seedMode = lireMenuInteractif(COLOR_CYAN "\n--- MATRICE DE GENERATION (SEED) ---" COLOR_RESET,
+                                      optionsSeed,
+                                      2,
+                                      1,
+                                      0);
     
     if (seedMode == 2) {
         printf("Entrez la seed numérique (Max 9 chiffres) : ");
@@ -144,76 +167,85 @@ void menuEtatVaisseau(Vaisseau *joueur) {
     while (!retour) {
         effacerEcran();
 
-        // --- 1. EN-TÊTE & RESSOURCES ---
-        printf(COLOR_CYAN "╔══════════════════════════════════════════════════════════╗\n");
-        printf("║ " COLOR_BOLD "📊 LOGS TECHNIQUES" COLOR_RESET COLOR_CYAN " : %-35s ║\n", joueur->nom);
-        printf("╠══════════════════════════════════════════════════════════╣\n");
-        printf("║ " COLOR_YELLOW "⚡ CARBURANT: %-3d  " COLOR_YELLOW "⚓ FERRAILLE: %-4d  " COLOR_YELLOW "🚀 MISSILES: %-3d " COLOR_CYAN " ║\n", 
-                joueur->carburant, joueur->ferraille, joueur->missiles);
-        printf("╠══════════════════════════════════════════════════════════╣\n" COLOR_RESET);
+        // --- 1. EN-TETE & RESSOURCES ---
+        char ligne[128];
+        printf(COLOR_CYAN "+----------------------------------------------------------+\n" COLOR_RESET);
+        snprintf(ligne, sizeof(ligne), "LOGS TECHNIQUES : %-38.38s", joueur->nom);
+        imprimerLigneEtatCouleur(COLOR_BOLD COLOR_CYAN, ligne);
+        printf(COLOR_CYAN "+----------------------------------------------------------+\n" COLOR_RESET);
+        snprintf(ligne, sizeof(ligne), "CARBURANT:%-3d  FERRAILLE:%-4d  MISSILES:%-3d",
+                 joueur->carburant, joueur->ferraille, joueur->missiles);
+        imprimerLigneEtatCouleur(COLOR_YELLOW, ligne);
+        printf(COLOR_CYAN "+----------------------------------------------------------+\n" COLOR_RESET);
 
         // --- 2. SYSTÈMES (Calcul dynamique des bonus) ---
-        printf(COLOR_CYAN "║ " COLOR_BOLD "DIAGNOSTIC SYSTÈMES" COLOR_RESET COLOR_CYAN "                                      ║\n" COLOR_RESET);
+        imprimerLigneEtatCouleur(COLOR_BOLD COLOR_WHITE, "DIAGNOSTIC SYSTEMES");
 
         // -- OFFENSIF --
         int bonusDegats = getBonusDegats(joueur);
-        printf("║  " COLOR_RED "✇ ARMEMENT :" COLOR_RESET " %-20s " COLOR_RED "(Puissance: %-2d) ", 
-               joueur->systemeArme.nom, joueur->systemeArme.efficacite);
-        if (bonusDegats > 0) printf(COLOR_GREEN " +%d(Soldat)", bonusDegats);
-        printf(COLOR_CYAN "      ║\n" COLOR_RESET);
+        if (bonusDegats > 0) {
+            snprintf(ligne, sizeof(ligne), " ARMEMENT : %-20.20s (Puissance: %-2d) +%d Soldat",
+                     joueur->systemeArme.nom, joueur->systemeArme.efficacite, bonusDegats);
+        } else {
+            snprintf(ligne, sizeof(ligne), " ARMEMENT : %-20.20s (Puissance: %-2d)",
+                     joueur->systemeArme.nom, joueur->systemeArme.efficacite);
+        }
+        imprimerLigneEtatCouleur(COLOR_RED, ligne);
 
-        // -- DÉFENSIF --
-        printf("║  " COLOR_BLUE "🛡 BOUCLIER :" COLOR_RESET " %-20s " COLOR_BLUE "(Charge: %-2d/%-2d)" COLOR_RESET "       " COLOR_CYAN "║\n", 
-               joueur->systemeBouclier.nom, joueur->bouclierActuel, joueur->systemeBouclier.efficacite);
+        // -- DEFENSIF --
+        snprintf(ligne, sizeof(ligne), " BOUCLIER : %-20.20s (Charge: %d/%d)",
+                 joueur->systemeBouclier.nom, joueur->bouclierActuel, joueur->systemeBouclier.efficacite);
+        imprimerLigneEtatCouleur(COLOR_BLUE, ligne);
 
         // -- MOTEURS --
         int bonusPilote = getBonusEsquive(joueur);
         int esquiveTotale = (joueur->moteurs * 5) + bonusPilote;
-        
-        printf("║  " COLOR_GREEN "💨 MOTEURS  :" COLOR_RESET " Niveau %-2d      " COLOR_GREEN "Esquive: %d%%", 
-               joueur->moteurs, esquiveTotale);
-        if (bonusPilote > 0) printf("(+%d Pilote)", bonusPilote);
-        else printf("           ");
-        printf(COLOR_CYAN "   ║\n" COLOR_RESET);
 
-        printf(COLOR_CYAN "╠══════════════════════════════════════════════════════════╣\n" COLOR_RESET);
+        if (bonusPilote > 0) {
+            snprintf(ligne, sizeof(ligne), " MOTEURS  : Niveau %-2d  Esquive:%2d%% (+%d Pilote)",
+                     joueur->moteurs, esquiveTotale, bonusPilote);
+        } else {
+            snprintf(ligne, sizeof(ligne), " MOTEURS  : Niveau %-2d  Esquive:%2d%%",
+                     joueur->moteurs, esquiveTotale);
+        }
+        imprimerLigneEtatCouleur(COLOR_GREEN, ligne);
+
+         printf(COLOR_CYAN "+----------------------------------------------------------+\n" COLOR_RESET);
 
         // --- 3. ÉQUIPAGE ---
-        printf(COLOR_CYAN "║ " COLOR_BOLD "RAPPORT D'ÉQUIPAGE" COLOR_RESET COLOR_CYAN "                                       ║\n" COLOR_RESET);
+        imprimerLigneEtatCouleur(COLOR_BOLD COLOR_WHITE, "RAPPORT D'EQUIPAGE");
         
         for(int i=0; i<3; i++) {
             Membre *m = &joueur->equipage[i];
             if (m->estVivant) {
-                // Gestion visuelle XP (Étoiles)
-                char stars[16] = "";
-                if(m->niveau == 1) strcpy(stars, COLOR_YELLOW "★" COLOR_RESET);
-                if(m->niveau >= 2) strcpy(stars, COLOR_YELLOW "★★" COLOR_RESET);
+                const char *xpLabel = "Rookie";
+                if (m->niveau == 1) xpLabel = "Veteran";
+                if (m->niveau >= 2) xpLabel = "Elite";
 
-                // Couleur Santé
-                char *colPv = (m->pv > 50) ? COLOR_GREEN : (m->pv > 25 ? COLOR_YELLOW : COLOR_RED);
-
-                // Format: 1. [ROLE] Nom ...
-                printf(COLOR_CYAN "║ " COLOR_RESET "%d. " COLOR_BOLD "%-16s" COLOR_RESET " [%-9s]  Vie:%s%3d%%" COLOR_RESET "  XP:%-8s   " COLOR_CYAN "║\n", 
-                    i+1, m->nom, getRoleNom(m->role), colPv, m->pv, stars);
+                snprintf(ligne, sizeof(ligne), " %d. %-16.16s [%-9.9s]  Vie:%3d%%  XP:%-8.8s",
+                         i+1, m->nom, getRoleNom(m->role), m->pv, xpLabel);
+                const char *couleurMembre = (m->pv > 50) ? COLOR_GREEN : (m->pv > 25 ? COLOR_YELLOW : COLOR_RED);
+                imprimerLigneEtatCouleur(couleurMembre, ligne);
             } else {
-                printf(COLOR_CYAN "║ " COLOR_RESET "%d. " COLOR_BLACK "--- POSTE VACANT ---" COLOR_RESET "                                  " COLOR_CYAN "║\n", i+1);
+                snprintf(ligne, sizeof(ligne), " %d. --- POSTE VACANT ---", i+1);
+                imprimerLigneEtatCouleur(COLOR_WHITE, ligne);
             }
         }
-        printf(COLOR_CYAN "╚══════════════════════════════════════════════════════════╝\n" COLOR_RESET);
+        printf(COLOR_CYAN "+----------------------------------------------------------+\n" COLOR_RESET);
 
         // --- 4. MENU ACTIONS ---
-        printf(COLOR_BOLD " COMMANDES DISPONIBLES :" COLOR_RESET "\n");
-        printf(" [1-3] Gérer un membre (Changer de poste)\n");
-        printf(" [4]   " COLOR_GREEN "INFIRMERIE" COLOR_RESET " (Soigner l'équipage | -1 Fuel)\n");
-        printf(" [5]   " COLOR_YELLOW "ATELIER" COLOR_RESET "    (Réparer +1 Coque | -2 Ferraille)\n");
-        printf(" [0]   " COLOR_WHITE "RETOUR" COLOR_RESET "\n");
-        printf(COLOR_YELLOW "\n > " COLOR_RESET);
-
-        int choix;
-        if (scanf("%d", &choix) != 1) { 
-            int c; while ((c = getchar()) != '\n' && c != EOF); 
-            continue; 
-        }
+        const char *optionsEtat[] = {
+            "Gerer membre 1 (changer de poste)",
+            "Gerer membre 2 (changer de poste)",
+            "Gerer membre 3 (changer de poste)",
+            "Infirmerie (soigner equipage | -1 carburant)",
+            "Atelier (reparer +1 coque | -2 ferraille)"
+        };
+        int choix = lireMenuInteractif(COLOR_BOLD "\nCOMMANDES DISPONIBLES" COLOR_RESET,
+                                       optionsEtat,
+                                       5,
+                                       1,
+                                       1);
 
         // --- LOGIQUE DES ACTIONS ---
 
@@ -221,15 +253,18 @@ void menuEtatVaisseau(Vaisseau *joueur) {
         if (choix >= 1 && choix <= 3) {
             Membre *m = &joueur->equipage[choix-1];
             if (m->estVivant) {
-                printf("\n" COLOR_BOLD ">>> RÉAFFECTATION : %s" COLOR_RESET "\n", m->nom);
-                printf("Poste actuel : %s\n", getRoleNom(m->role));
-                printf("1. Pilote    (+Esquive)\n");
-                printf("2. Ingénieur (+Recharge Bouclier)\n");
-                printf("3. Soldat    (+Dégâts Armes)\n");
-                printf("0. Annuler\n> ");
-                
-                int r;
-                scanf("%d", &r);
+                char titreAffectation[96];
+                snprintf(titreAffectation, sizeof(titreAffectation),
+                         COLOR_BOLD "\n>>> REAFFECTATION : %s" COLOR_RESET "\nPoste actuel : %s",
+                         m->nom,
+                         getRoleNom(m->role));
+                const char *optionsRoles[] = {
+                    "Pilote (+esquive)",
+                    "Ingenieur (+recharge bouclier)",
+                    "Soldat (+degats armes)"
+                };
+
+                int r = lireMenuInteractif(titreAffectation, optionsRoles, 3, 1, 1);
                 if (r == 1) m->role = ROLE_PILOTE;
                 if (r == 2) m->role = ROLE_INGENIEUR;
                 if (r == 3) m->role = ROLE_SOLDAT;

@@ -34,8 +34,13 @@ int chargerPartie(Vaisseau *joueur);
 void supprimerSauvegarde();
 void finaliserEvenement(Vaisseau *joueur);
 
+void enregistrerJoueur(Vaisseau *v);
+void sauvegarderCheckpoint(Vaisseau *v);
+
 int lireEntierSecurise(int min, int max);
-int lireChoix(int defaut);
+int lireChoix(int max);
+int lireChoixIntervalle(int min, int max, int valeurInitiale);
+int lireMenuInteractif(const char *titre, const char *const options[], int nbOptions, int valeurInitiale, int autoriserRetourZero);
 
 // ============================================================
 // CONSTANTES DE JEU

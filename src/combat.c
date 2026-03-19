@@ -5,50 +5,162 @@
 #include <string.h>
 #include <time.h>
 
+static int normaliserDifficulte(int d) {
+    if (d < DIFFICULTE_FACILE || d > DIFFICULTE_DIFFICILE) return DIFFICULTE_NORMALE;
+    return d;
+}
+
+static const char *libelleDifficulte(int d) {
+    d = normaliserDifficulte(d);
+    if (d == DIFFICULTE_FACILE) return "Facile";
+    if (d == DIFFICULTE_DIFFICILE) return "Difficile";
+    return "Normal";
+}
+
+static void construireBarre(char *out, size_t outSize, int valeur, int maxValeur, int largeur, char plein, char vide) {
+    if (outSize == 0) return;
+    if (maxValeur <= 0) maxValeur = 1;
+    if (valeur < 0) valeur = 0;
+    if (valeur > maxValeur) valeur = maxValeur;
+
+    int remplis = (valeur * largeur) / maxValeur;
+    if (remplis < 0) remplis = 0;
+    if (remplis > largeur) remplis = largeur;
+
+    int pos = 0;
+    if (pos < (int)outSize - 1) out[pos++] = '[';
+    for (int i = 0; i < largeur && pos < (int)outSize - 1; i++) {
+        out[pos++] = (i < remplis) ? plein : vide;
+    }
+    if (pos < (int)outSize - 1) out[pos++] = ']';
+    out[pos] = '\0';
+}
+
+static const char *etatCoqueTexte(int coque, int coqueMax) {
+    if (coqueMax <= 0) return "CRITIQUE";
+    float ratio = (float)coque / (float)coqueMax;
+    if (ratio > 0.65f) return "STABLE";
+    if (ratio > 0.30f) return "ENDOMMAGE";
+    return "CRITIQUE";
+}
+
+static void tronquerTexte(char *dest, size_t destSize, const char *src, size_t maxVisible) {
+    if (destSize == 0) return;
+    if (src == NULL) src = "";
+
+    size_t n = strlen(src);
+    if (n <= maxVisible) {
+        snprintf(dest, destSize, "%s", src);
+        return;
+    }
+
+    if (maxVisible < 3) {
+        snprintf(dest, destSize, "%.*s", (int)maxVisible, src);
+        return;
+    }
+
+    size_t cut = maxVisible - 3;
+    snprintf(dest, destSize, "%.*s...", (int)cut, src);
+}
+
+static void imprimerLigneBox(const char *content) {
+    printf("| %-76.76s |\n", content);
+}
+
+static void imprimerLigneCombatColonnes(const char *gauche, const char *droite) {
+    char ligne[128];
+    snprintf(ligne, sizeof(ligne), " %-36.36s | %-36.36s", gauche, droite);
+    imprimerLigneBox(ligne);
+}
+
+static void appliquerScalingDifficulteEnnemi(Vaisseau *joueur, Vaisseau *ennemi, int estBossFinal) {
+    int d = normaliserDifficulte(joueur->difficulte);
+
+    if (d == DIFFICULTE_FACILE) {
+        ennemi->coqueMax = (ennemi->coqueMax * 85) / 100;
+        if (ennemi->coqueMax < 5) ennemi->coqueMax = 5;
+        if (ennemi->coque > ennemi->coqueMax) ennemi->coque = ennemi->coqueMax;
+        ennemi->systemeArme.efficacite = (ennemi->systemeArme.efficacite * 85) / 100;
+        if (ennemi->systemeArme.efficacite < 1) ennemi->systemeArme.efficacite = 1;
+        if (!estBossFinal && ennemi->moteurs > 0) ennemi->moteurs--;
+    } else if (d == DIFFICULTE_DIFFICILE) {
+        ennemi->coqueMax = (ennemi->coqueMax * 120) / 100;
+        if (ennemi->coqueMax < 8) ennemi->coqueMax = 8;
+        ennemi->coque = ennemi->coqueMax;
+        ennemi->systemeArme.efficacite = (ennemi->systemeArme.efficacite * 120) / 100;
+        if (ennemi->systemeArme.efficacite < 2) ennemi->systemeArme.efficacite = 2;
+        if (!estBossFinal) ennemi->moteurs++;
+        if (ennemi->moteurs > 7) ennemi->moteurs = 7;
+    }
+}
+
 void afficherEtatCombat(Vaisseau *joueur, Vaisseau *ennemi) {
     effacerEcran();
 
-    char playerName[15];
-    if (strlen(joueur->nom) > 14) {
-        strncpy(playerName, joueur->nom, 14);
-        playerName[11] = '.'; playerName[12] = '.'; playerName[13] = '.';
-        playerName[14] = '\0';
-    } else {
-        strcpy(playerName, joueur->nom);
+    char playerName[32], ennemiName[32];
+    tronquerTexte(playerName, sizeof(playerName), joueur->nom, 28);
+    tronquerTexte(ennemiName, sizeof(ennemiName), ennemi->nom, 28);
+
+    int bouclierMaxJoueur = joueur->systemeBouclier.efficacite + getBonusCapaciteBouclier(joueur);
+    if (bouclierMaxJoueur < 0) bouclierMaxJoueur = 0;
+
+    char coqueJBar[20], coqueEBar[20], shieldJBar[20], shieldEBar[20], ligne[160];
+    char gauche[64], droite[64];
+    char armeJ[32], armeE[32];
+    construireBarre(coqueJBar, sizeof(coqueJBar), joueur->coque, joueur->coqueMax, 12, '#', '-');
+    construireBarre(coqueEBar, sizeof(coqueEBar), ennemi->coque, ennemi->coqueMax, 12, '#', '-');
+    construireBarre(shieldJBar, sizeof(shieldJBar), joueur->bouclierActuel, bouclierMaxJoueur, 10, '+', '.');
+    construireBarre(shieldEBar, sizeof(shieldEBar), ennemi->bouclierActuel, ennemi->systemeBouclier.efficacite, 10, '+', '.');
+    tronquerTexte(armeJ, sizeof(armeJ), joueur->systemeArme.nom, 30);
+    tronquerTexte(armeE, sizeof(armeE), ennemi->systemeArme.nom, 30);
+
+    char ftlBar[16] = {0};
+    int p = 0;
+    ftlBar[p++] = '[';
+    for (int i = 0; i < ennemi->maxchargeFTL && p < (int)sizeof(ftlBar) - 2; i++) {
+        ftlBar[p++] = (i < ennemi->chargeFTL) ? '#' : '-';
     }
-    
-    printf(COLOR_CYAN "╔══════════════════════════════════════════════════╗\n");
+    ftlBar[p++] = ']';
+    ftlBar[p] = '\0';
 
-    printf("║ " COLOR_RESET "%-15s " COLOR_YELLOW "vs" COLOR_RESET "  %-15s " COLOR_MAGENTA, 
-        playerName, ennemi->nom);
+    printf(COLOR_CYAN "+------------------------------------------------------------------------------+\n" COLOR_RESET);
+    snprintf(ligne, sizeof(ligne), "COMBAT TACTIQUE   [Difficulte: %s]", libelleDifficulte(joueur->difficulte));
+    imprimerLigneBox(ligne);
+    printf(COLOR_CYAN "+------------------------------------------------------------------------------+\n" COLOR_RESET);
 
-    afficherBarreFTL(ennemi->chargeFTL);
+    snprintf(gauche, sizeof(gauche), "ALLIE: %-28.28s", playerName);
+    snprintf(droite, sizeof(droite), "HOSTILE: %-28.28s", ennemiName);
+    imprimerLigneCombatColonnes(gauche, droite);
 
-    printf(COLOR_CYAN "   ║\n");
-    
-    // Ligne des Coques
-    char coqueJ[20], coqueE[20];
-    sprintf(coqueJ, "Coque: %d/%d", joueur->coque, joueur->coqueMax);
-    sprintf(coqueE, "Coque: %d/%d", ennemi->coque, ennemi->coqueMax);
-    
-    printf("║ " COLOR_RED "%-22s " COLOR_RESET "| " COLOR_RED "%-23s " COLOR_CYAN "║\n", 
-           coqueJ, coqueE);
-    
-    // Ligne des Boucliers
-    char shieldJ[25], shieldE[25];
+    snprintf(gauche, sizeof(gauche), "Coque    %-14s %2d/%-2d %-9s",
+             coqueJBar, joueur->coque, joueur->coqueMax, etatCoqueTexte(joueur->coque, joueur->coqueMax));
+    snprintf(droite, sizeof(droite), "Coque    %-14s %2d/%-2d %-9s",
+             coqueEBar, ennemi->coque, ennemi->coqueMax, etatCoqueTexte(ennemi->coque, ennemi->coqueMax));
+    imprimerLigneCombatColonnes(gauche, droite);
 
-    // On affiche le bouclier actuel sur le max (qui est l'efficacite du systeme)
-    sprintf(shieldJ, "Shield: %d/%d", joueur->bouclierActuel, joueur->systemeBouclier.efficacite);
-    sprintf(shieldE, "Shield: %d/%d", ennemi->bouclierActuel, ennemi->systemeBouclier.efficacite);
+    snprintf(gauche, sizeof(gauche), "Bouclier %-14s %2d/%-2d",
+             shieldJBar, joueur->bouclierActuel, bouclierMaxJoueur);
+    snprintf(droite, sizeof(droite), "Bouclier %-14s %2d/%-2d",
+             shieldEBar, ennemi->bouclierActuel, ennemi->systemeBouclier.efficacite);
+    imprimerLigneCombatColonnes(gauche, droite);
 
-    printf("║ " COLOR_CYAN "%-22s " COLOR_RESET "| " COLOR_CYAN "%-23s " COLOR_CYAN "║\n", 
-        shieldJ, shieldE);
-    
-    printf("╚══════════════════════════════════════════════════╝" COLOR_RESET "\n");
+    snprintf(gauche, sizeof(gauche), "Arme %-31.31s", armeJ);
+    snprintf(droite, sizeof(droite), "Arme %-31.31s", armeE);
+    imprimerLigneCombatColonnes(gauche, droite);
+
+    snprintf(ligne, sizeof(ligne), "FTL ennemi: %-8s", ftlBar);
+    imprimerLigneBox(ligne);
+
+    printf(COLOR_CYAN "+------------------------------------------------------------------------------+\n" COLOR_RESET);
+    snprintf(ligne, sizeof(ligne), "Ressources  Ferraille: %-4d  Missiles: %-3d  Precision: %-3d",
+             joueur->ferraille, joueur->missiles, joueur->precision);
+    imprimerLigneBox(ligne);
+    printf(COLOR_CYAN "+------------------------------------------------------------------------------+\n" COLOR_RESET);
 }
 
 void lancerCombat(Vaisseau *joueur, Vaisseau *ennemi) {
     SLEEP_MS(1500);
+    int estBossFinal = (strcmp(ennemi->nom, "DESTROYEUR STELLAIRE") == 0);
 
     // 1. GESTION DU CONTACT
     if (joueur->ennemiPresent && joueur->ennemiCoqueActuelle > 0) {
@@ -56,9 +168,11 @@ void lancerCombat(Vaisseau *joueur, Vaisseau *ennemi) {
         printf(COLOR_YELLOW "\n[REPRISE] Contact maintenu : %s (%d/%d)" COLOR_RESET "\n",
                ennemi->nom, ennemi->coque, ennemi->coqueMax);
     } else {
+        appliquerScalingDifficulteEnnemi(joueur, ennemi, estBossFinal);
         joueur->ennemiPresent = 1;
         joueur->ennemiCoqueActuelle = ennemi->coque;
-        printf("\n" COLOR_RED "[ALERTE]" COLOR_RESET " Contact visuel : %s", ennemi->nom);
+        printf("\n" COLOR_RED "[ALERTE]" COLOR_RESET " Contact visuel : %s | Difficulte: %s\n",
+               ennemi->nom, libelleDifficulte(joueur->difficulte));
         sauvegarderPartie(joueur);
     }
     
@@ -136,19 +250,21 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
         
         if (ennemi->debuffArme > 0) printf(COLOR_RED "[INFO] Armes ennemies endommagees (Dégâts réduits)\n" COLOR_RESET);
         if (ennemi->debuffMoteur > 0) printf(COLOR_RED "[INFO] Moteurs ennemis HS (Esquive nulle)\n" COLOR_RESET);
+        if (joueur->debuffArme > 0) printf(COLOR_YELLOW "[INFO] Vos armes sont perturbees (puissance reduite)\n" COLOR_RESET);
+        if (joueur->debuffMoteur > 0) printf(COLOR_YELLOW "[INFO] Vos moteurs sont instables (esquive reduite)\n" COLOR_RESET);
 
         // --- MENU ACTIONS ---
-        printf(COLOR_CYAN "\n--- VOTRE TOUR ---\n" COLOR_RESET);
-        printf(COLOR_YELLOW "1. ATTAQUER (Systèmes & Armes)\n" COLOR_RESET);
-        printf(COLOR_BLUE "2. RECHARGER BOUCLIERS\n" COLOR_RESET);
-        printf(COLOR_MAGENTA "3. TENTER LA FUITE\n" COLOR_RESET);
-        printf(COLOR_GREEN "4. ANALYSER LE VAISSEAU\n" COLOR_RESET);
-        printf(COLOR_YELLOW "> " COLOR_RESET);
-        
-        if (scanf("%d", &choixAction) != 1) { 
-            int c; while ((c = getchar()) != '\n' && c != EOF); 
-            continue; 
-        }
+        const char *optionsAction[] = {
+            "ATTAQUER -> Tirer sur coque/systemes",
+            "RECHARGER SHIELD -> Stabiliser la defense",
+            "TENTER LA FUITE -> Charger le FTL",
+            "ANALYSER -> Scanner tactique detaille"
+        };
+        choixAction = lireMenuInteractif(COLOR_CYAN "\nVOTRE TOUR" COLOR_RESET,
+                                         optionsAction,
+                                         4,
+                                         1,
+                                         0);
 
         // --- 1. ATTAQUER ---
         if (choixAction == 1) {
@@ -165,24 +281,33 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
             if (esquiveFinaleSysteme < 0) esquiveFinaleSysteme = 0;
             int chanceSysteme = 100 - esquiveFinaleSysteme;
             if (chanceSysteme < 0) chanceSysteme = 0;
+            if (chanceSysteme > 100) chanceSysteme = 100;
 
             // Menu Cible
-            printf(COLOR_BLUE "\n--- CHOIX DE LA CIBLE ---\n" COLOR_RESET);
-            printf("1. Coque Centrale  [" COLOR_GREEN "%d%%" COLOR_RESET " Toucher]\n", chanceCoque);
-            printf("2. Syst. Armes     [" COLOR_YELLOW "%d%%" COLOR_RESET " Toucher] -> " COLOR_RED "Dégâts ennemis réduits" COLOR_RESET "\n", chanceSysteme);
-            printf("3. Syst. Moteurs   [" COLOR_YELLOW "%d%%" COLOR_RESET " Toucher] -> " COLOR_RED "Annule l'esquive" COLOR_RESET "\n", chanceSysteme);
-            printf(COLOR_WHITE "0. RETOUR\n" COLOR_RESET);
-            printf(COLOR_YELLOW "> " COLOR_RESET);
-            scanf("%d", &choixCible);
+            char cible1[96], cible2[96], cible3[96];
+            snprintf(cible1, sizeof(cible1), "Coque centrale [%d%%] Degats directs", chanceCoque);
+            snprintf(cible2, sizeof(cible2), "Systeme armes [%d%%] Debuff puissance ennemie", chanceSysteme);
+            snprintf(cible3, sizeof(cible3), "Systeme moteurs [%d%%] Debuff esquive ennemie", chanceSysteme);
+            const char *optionsCible[] = { cible1, cible2, cible3 };
+            choixCible = lireMenuInteractif(COLOR_BLUE "\nCIBLAGE DES ARMES" COLOR_RESET,
+                                            optionsCible,
+                                            3,
+                                            1,
+                                            1);
             if (choixCible == 0) continue; 
 
             // Menu Arme
-            printf(COLOR_BLUE "\n--- CHOIX DE L'ARME ---\n" COLOR_RESET);
-            printf("1. Canon Laser\n");
-            printf("2. Missile (Stock: %d)\n", joueur->missiles);
-            printf(COLOR_WHITE "0. RETOUR\n" COLOR_RESET);
-            printf(COLOR_YELLOW "> " COLOR_RESET);
-            scanf("%d", &choixArme);
+            char arme2[96];
+            snprintf(arme2, sizeof(arme2), "Missile (stock actuel: %d)", joueur->missiles);
+            const char *optionsArme[] = {
+                "Canon Laser (attaque standard)",
+                arme2
+            };
+            choixArme = lireMenuInteractif(COLOR_BLUE "\nSELECTION D'ARME" COLOR_RESET,
+                                           optionsArme,
+                                           2,
+                                           1,
+                                           1);
             if (choixArme == 0) continue; 
 
             // EXECUTION TIR
@@ -205,6 +330,12 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
                 SLEEP_MS(800);
             } else {
                 int degats = joueur->systemeArme.efficacite;
+
+                if (joueur->debuffArme > 0) {
+                    degats = (degats + 1) / 2;
+                    if (degats < 1) degats = 1;
+                    printf(COLOR_YELLOW "[PERTURBATION] Vos armes perdent de la puissance ce tour.\n" COLOR_RESET);
+                }
 
                 // --- BONUS SOLDAT (Dégâts) ---
                 int bonusSoldatDmg = getBonusDegats(joueur); // Dégât brut
@@ -313,8 +444,6 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
                 }
             }
 
-            joueur->bouclierActuel += regen;
-            
             // NOUVEAU CALCUL DU MAX
             int maxTotal = joueur->systemeBouclier.efficacite + getBonusCapaciteBouclier(joueur);
             
@@ -332,6 +461,13 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
                 printf(COLOR_RED "\n[ERREUR] Le vaisseau mère génère un champ inhibiteur ! Saut FTL impossible !\n" COLOR_RESET);
                 SLEEP_MS(2000);
             } else {
+                if (joueur->debuffMoteur > 0 && (rand() % 100) < 35) {
+                    printf(COLOR_RED "\n[MOTEURS] Instabilite moteur: le chargement FTL echoue ce tour.\n" COLOR_RESET);
+                    SLEEP_MS(1000);
+                    tourFini = 1;
+                    continue;
+                }
+
                 joueur->chargeFTL++;
                 printf(COLOR_YELLOW "\nChargement FTL...\n" COLOR_RESET);
 
@@ -364,46 +500,68 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
 
     // --- TOUR DE L'ENNEMI ---
     if (ennemi->coque > 0) {
-        printf("\nL'ennemi riposte...");
+        int d = normaliserDifficulte(joueur->difficulte);
+        int chanceFuite = (d == DIFFICULTE_FACILE) ? 70 : (d == DIFFICULTE_DIFFICILE ? 30 : 50);
+        int bonusPrecisionIA = (d == DIFFICULTE_FACILE) ? -8 : (d == DIFFICULTE_DIFFICILE ? 8 : 0);
+        int chanceRechargeIA = (d == DIFFICULTE_FACILE) ? 28 : (d == DIFFICULTE_DIFFICILE ? 12 : 20);
+        int chanceSabotage = (d == DIFFICULTE_FACILE) ? 6 : (d == DIFFICULTE_DIFFICILE ? 22 : 12);
+        int multiDegats = (d == DIFFICULTE_FACILE) ? 85 : (d == DIFFICULTE_DIFFICILE ? 120 : 100);
+
+        printf("\nL'ennemi evalue la situation tactique...");
         SLEEP_MS(800);
 
         // --- BONUS PILOTE (Esquive) ---
         int bonusPilote = getBonusEsquive(joueur);
         int esquiveJoueur = 10 + (joueur->moteurs * 5) + bonusPilote;
+        if (joueur->debuffMoteur > 0) {
+            esquiveJoueur -= 20;
+            if (esquiveJoueur < 0) esquiveJoueur = 0;
+        }
 
         if (bonusPilote > 0) {
             printf(COLOR_CYAN "[PILOTE] Manoeuvre evasive ! (+%d%% Esquive)\n" COLOR_RESET, bonusPilote);
         }
-        
-        // Fuite Ennemie si PV bas
-        if (ennemi->coque < (ennemi->coqueMax * 0.3) && !estBossFinal && ennemi->debuffMoteur == 0) {
-             ennemi->chargeFTL++;
-             printf(COLOR_RED "\n[ALERTE] L'ennemi charge son FTL pour fuir !\n" COLOR_RESET);
-             if (ennemi->chargeFTL >= ennemi->maxchargeFTL) {
-                 ennemi->coque = 0; return;
-             }
-             goto fin_tour_ennemi;
+
+        // Fuite ennemie selon le risque
+        if (!estBossFinal && ennemi->debuffMoteur == 0 && ennemi->coque * 100 <= ennemi->coqueMax * 30 && (rand() % 100) < chanceFuite) {
+            ennemi->chargeFTL++;
+            printf(COLOR_RED "\n[ALERTE] L'ennemi charge son FTL pour fuir !\n" COLOR_RESET);
+            if (ennemi->chargeFTL >= ennemi->maxchargeFTL) {
+                ennemi->coque = 0; return;
+            }
+            goto fin_tour_ennemi;
         }
-        
+
+        // Decision defensive: recharge bouclier
+        if (ennemi->bouclierActuel < ennemi->systemeBouclier.efficacite && (rand() % 100) < chanceRechargeIA) {
+            int recharge = 1 + ((d == DIFFICULTE_DIFFICILE && (rand() % 100) < 30) ? 1 : 0);
+            ennemi->bouclierActuel += recharge;
+            if (ennemi->bouclierActuel > ennemi->systemeBouclier.efficacite) {
+                ennemi->bouclierActuel = ennemi->systemeBouclier.efficacite;
+            }
+            printf(COLOR_BLUE "\n[IA] L'ennemi redirige l'energie vers ses boucliers (+%d).\n" COLOR_RESET, recharge);
+            goto fin_tour_ennemi;
+        }
+
         // --- RÉSOLUTION TIR ENNEMI ---
-        if (checkEsquive(esquiveJoueur, joueur)) {
+        if (checkEsquive(esquiveJoueur - bonusPrecisionIA, joueur)) {
             printf(COLOR_GREEN "\nESQUIVE ! Vous évitez le tir.\n" COLOR_RESET);
 
-            // --- XP PILOTE ---
             for(int i=0; i<3; i++) {
                 if(joueur->equipage[i].role == ROLE_PILOTE && joueur->equipage[i].estVivant) {
                     gagnerXP(&joueur->equipage[i], 15);
                 }
             }
         } else {
-            // L'ennemi touche
             int degatsEntrants = ennemi->systemeArme.efficacite;
             
             if (ennemi->debuffArme > 0) {
                 degatsEntrants = degatsEntrants / 2;
                 printf(COLOR_YELLOW "\n[CHANCE] Les armes endommagées de l'ennemi tirent faiblement !\n" COLOR_RESET);
             }
-            
+
+            degatsEntrants = (degatsEntrants * multiDegats) / 100;
+            if (degatsEntrants < 1) degatsEntrants = 1;
             degatsEntrants = calculerDegats(degatsEntrants, ennemi->moteurs, 0);
 
             if (joueur->bouclierActuel >= degatsEntrants) {
@@ -415,7 +573,17 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
                 joueur->coque -= surplus;
                 printf(COLOR_RED "\nALERTE ! Dégâts coque subis: -%d\n" COLOR_RESET, surplus);
 
-                // --- DÉGÂTS SUR L'ÉQUIPAGE ---
+                // Occasionnellement, l'IA cible vos systèmes sur les difficultés élevées.
+                if ((rand() % 100) < chanceSabotage) {
+                    if ((rand() % 2) == 0) {
+                        joueur->debuffArme = 2;
+                        printf(COLOR_RED "[IA] Vos armes sont touchées: puissance réduite pour 2 tours.\n" COLOR_RESET);
+                    } else {
+                        joueur->debuffMoteur = 2;
+                        printf(COLOR_RED "[IA] Vos moteurs sont touchés: esquive réduite pour 2 tours.\n" COLOR_RESET);
+                    }
+                }
+
                 subirDegatsEquipage(joueur);
             }
         }
@@ -429,7 +597,8 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
 }
 
 bool checkEsquive(int chanceEsquive, Vaisseau *attaquant) {
-    int esquiveFinale = chanceEsquive - attaquant->precision;
+    (void)attaquant;
+    int esquiveFinale = chanceEsquive;
     if (esquiveFinale < 0) esquiveFinale = 0;
     if (esquiveFinale > 80) esquiveFinale = 80;
 
@@ -565,36 +734,36 @@ void analyserEnnemi(Vaisseau *joueur, Vaisseau *ennemi) {
     int esquiveReelle = esquiveBase - joueur->precision;
     if (esquiveReelle < 0) esquiveReelle = 0;
 
-    printf("\n" COLOR_GREEN "==== [ SCANNER TACTIQUE ] ====" COLOR_RESET "\n");
-    printf("Cible : " COLOR_BOLD "%-20s" COLOR_RESET "\n", ennemi->nom);
-    printf("------------------------------\n");
-    
-    printf("OFFENSE  : " COLOR_RED "%-18s" COLOR_RESET " (Puissance: %d)\n", 
+    printf("\n" COLOR_GREEN "╔════════════════════ SCANNER TACTIQUE ════════════════════╗\n" COLOR_RESET);
+    printf(" Cible        : " COLOR_BOLD "%-28s" COLOR_RESET "\n", ennemi->nom);
+    printf(" Arme         : " COLOR_RED "%-28s" COLOR_RESET " Puissance: %d\n",
            ennemi->systemeArme.nom, ennemi->systemeArme.efficacite);
-    
+    printf(" Bouclier     : " COLOR_CYAN "%-28s" COLOR_RESET " Charge max: %d\n",
+           ennemi->systemeBouclier.nom, ennemi->systemeBouclier.efficacite);
+    printf(" Moteurs      : " COLOR_YELLOW "Niveau %d" COLOR_RESET "\n", ennemi->moteurs);
+
     if (ennemi->debuffArme > 0) {
-         printf(COLOR_RED "           [!] SYSTÈME ENDOMMAGÉ : Dégâts réduits de 50%% (%d tours)\n" COLOR_RESET, ennemi->debuffArme);
+        printf(" Statut armes : " COLOR_RED "ENDOMMAGEES (%d tours restants)" COLOR_RESET "\n", ennemi->debuffArme);
+    } else {
+        printf(" Statut armes : " COLOR_GREEN "OPERATIONNELLES" COLOR_RESET "\n");
     }
 
-    printf("DEFENSE  : " COLOR_CYAN "%-18s" COLOR_RESET " (Bouclier: %d)\n", 
-           ennemi->systemeBouclier.nom, ennemi->systemeBouclier.efficacite);
-    
-    printf("AGILITE  : " COLOR_YELLOW "Moteurs Lvl.%d" COLOR_RESET "\n", ennemi->moteurs);
-    
     if (ennemi->debuffMoteur > 0) {
-        printf(COLOR_RED "           [!] MOTEURS HS : Cible immobilisée (%d tours)\n" COLOR_RESET, ennemi->debuffMoteur);
-        printf(COLOR_GREEN "           >> CHANCE DE TOUCHER : 100%% (Cible facile)\n" COLOR_RESET);
+        printf(" Statut moteur: " COLOR_RED "HS (%d tours restants)" COLOR_RESET "\n", ennemi->debuffMoteur);
+        printf(" Precision    : " COLOR_GREEN "Chance de toucher: 100%%" COLOR_RESET "\n");
     } else {
-        printf("           Esquive Cible : %d%% " COLOR_GREEN "(Votre Précision: -%d%%)" COLOR_RESET "\n", 
-               esquiveBase, joueur->precision);
-        printf("           " COLOR_BOLD "CHANCE DE TOUCHER : %d%%" COLOR_RESET "\n", 100 - esquiveReelle);
+        int chanceToucher = 100 - esquiveReelle;
+        if (chanceToucher < 0) chanceToucher = 0;
+        if (chanceToucher > 100) chanceToucher = 100;
+        printf(" Esquive cible: %d%% (precision joueur: -%d%%)\n", esquiveBase, joueur->precision);
+        printf(" Precision    : " COLOR_BOLD "%d%% de chance de toucher" COLOR_RESET "\n", chanceToucher);
     }
 
     if (ennemi->systemeArme.rang > joueur->systemeArme.rang || 
         ennemi->systemeBouclier.rang > joueur->systemeBouclier.rang) {
-        printf("\n" COLOR_MAGENTA "[!] SIGNAL DETECTE : Technologie supérieure récupérable !" COLOR_RESET "\n");
+        printf("\n" COLOR_MAGENTA " [!] Technologie superieure detectee: loot possible" COLOR_RESET "\n");
     } else {
-        printf("\n" COLOR_WHITE "[i] Info : Pas de technologie notable à bord." COLOR_RESET "\n");
+        printf("\n" COLOR_WHITE " [i] Aucun module notable a recuperer" COLOR_RESET "\n");
     }
-    printf(COLOR_GREEN "==============================" COLOR_RESET "\n");
+    printf(COLOR_GREEN "╚═══════════════════════════════════════════════════════════╝" COLOR_RESET "\n");
 }

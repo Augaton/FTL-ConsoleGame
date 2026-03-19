@@ -3,6 +3,122 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
+#ifndef _WIN32
+#include <termios.h>
+#include <unistd.h>
+#endif
+
+/* --- Gestionnaire d'interruption (Ctrl+C) --- */
+static Vaisseau *g_joueur_ptr        = NULL;
+static Vaisseau  g_checkpoint;
+static int       g_checkpoint_valide = 0;
+
+#ifndef _WIN32
+static struct termios g_termios_original;
+static int            g_termios_original_saved = 0;
+
+static void restaurerTerminal(void) {
+    if (g_termios_original_saved)
+        tcsetattr(STDIN_FILENO, TCSANOW, &g_termios_original);
+}
+
+static void gestionSIGINT(int sig) {
+    (void)sig;
+    restaurerTerminal();
+    printf("\n\n" COLOR_YELLOW "[SYSTEME] Interruption reçue." COLOR_RESET "\n");
+    if (g_checkpoint_valide && g_joueur_ptr != NULL) {
+        *g_joueur_ptr = g_checkpoint;
+        printf(COLOR_GREEN "[SYSTEME] Opération annulée — état précédent restauré.\n" COLOR_RESET);
+        sauvegarderPartie(g_joueur_ptr);
+    }
+    exit(0);
+}
+#else
+static void gestionSIGINT(int sig) {
+    (void)sig;
+    printf("\n\n[SYSTEME] Interruption reçue.\n");
+    if (g_checkpoint_valide && g_joueur_ptr != NULL) {
+        *g_joueur_ptr = g_checkpoint;
+        sauvegarderPartie(g_joueur_ptr);
+    }
+    exit(0);
+}
+#endif
+
+void enregistrerJoueur(Vaisseau *v) {
+    g_joueur_ptr = v;
+#ifndef _WIN32
+    if (tcgetattr(STDIN_FILENO, &g_termios_original) == 0)
+        g_termios_original_saved = 1;
+#endif
+    signal(SIGINT, gestionSIGINT);
+}
+
+void sauvegarderCheckpoint(Vaisseau *v) {
+    g_checkpoint        = *v;
+    g_checkpoint_valide = 1;
+}
+
+enum {
+    KEY_NONE = 0,
+    KEY_UP = 1001,
+    KEY_DOWN = 1002,
+    KEY_ENTER = 1003,
+    KEY_BACKSPACE = 1004
+};
+
+static int clamp(int value, int min, int max) {
+    if (value < min) return min;
+    if (value > max) return max;
+    return value;
+}
+
+static void viderBufferEntree(void) {
+#ifndef _WIN32
+    tcflush(STDIN_FILENO, TCIFLUSH);
+#else
+    FlushConsoleInputBuffer(GetStdHandle(STD_INPUT_HANDLE));
+#endif
+}
+
+static int lireToucheNavigation(void) {
+#ifdef _WIN32
+    int ch = getchar();
+    if (ch == '\r' || ch == '\n') return KEY_ENTER;
+    if (ch == 8 || ch == 127) return KEY_BACKSPACE;
+    return ch;
+#else
+    struct termios oldt;
+    if (tcgetattr(STDIN_FILENO, &oldt) != 0) {
+        int ch = getchar();
+        if (ch == '\r' || ch == '\n') return KEY_ENTER;
+        return ch;
+    }
+
+    struct termios newt = oldt;
+    newt.c_lflag &= ~(ICANON | ECHO);
+    newt.c_cc[VMIN] = 1;
+    newt.c_cc[VTIME] = 0;
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+
+    int ch = getchar();
+
+    if (ch == 27) {
+        int b = getchar();
+        int c = getchar();
+        if (b == '[' && c == 'A') ch = KEY_UP;
+        else if (b == '[' && c == 'B') ch = KEY_DOWN;
+    } else if (ch == '\r' || ch == '\n') {
+        ch = KEY_ENTER;
+    } else if (ch == 8 || ch == 127) {
+        ch = KEY_BACKSPACE;
+    }
+
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    return ch;
+#endif
+}
 
 void effacerEcran() {
     #ifdef _WIN32
@@ -60,10 +176,12 @@ void afficherVictoire(Vaisseau *joueur) {
 }
 
 void attendreJoueur() {
+    viderBufferEntree();
     printf(COLOR_CYAN "\n[ Appuyez sur ENTREE pour continuer ]" COLOR_RESET);
-    int c;
-    while ((c = getchar()) != '\n' && c != EOF); // Nettoie le buffer
-    getchar();
+    char buffer[8];
+    if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
+        clearerr(stdin);
+    }
 }
 
 // Sauvegarde et chargement
@@ -107,6 +225,7 @@ void sauvegarderPartie(Vaisseau *v) {
     fprintf(f, "ennemiCoqueActuelle %d\n", v->ennemiCoqueActuelle);
     fprintf(f, "chargeFTL %d\n",           v->chargeFTL);
     fprintf(f, "maxchargeFTL %d\n",        v->maxchargeFTL);
+    fprintf(f, "difficulte %d\n",         v->difficulte);
 
     // --- COMPOSANTS (nom rang efficacite) ---
     fprintf(f, "ARME %s|%d|%d\n",
@@ -149,6 +268,10 @@ int chargerPartie(Vaisseau *v) {
     }
 
     // --- Lecture ligne par ligne ---
+    v->difficulte = DIFFICULTE_NORMALE;
+    v->debuffArme = 0;
+    v->debuffMoteur = 0;
+
     char clef[64];
     char valeur[256];
 
@@ -201,6 +324,8 @@ int chargerPartie(Vaisseau *v) {
             { fscanf(f, "%d", &v->chargeFTL); }
         else if (strcmp(clef, "maxchargeFTL") == 0)
             { fscanf(f, "%d", &v->maxchargeFTL); }
+        else if (strcmp(clef, "difficulte") == 0)
+            { fscanf(f, "%d", &v->difficulte); }
 
         // Composants (format: NOM|rang|efficacite)
         else if (strcmp(clef, "ARME") == 0) {
@@ -278,16 +403,142 @@ int lireEntierSecurise(int min, int max) {
     }
 }
 
-// Lit un choix de menu depuis stdin.
-// Retourne la valeur saisie, ou `defaut` si l'entrée est invalide.
-// Ne vérifie pas de bornes — c'est à l'appelant de gérer les cas inattendus.
-int lireChoix(int defaut) {
-    int choix;
-    if (scanf("%d", &choix) != 1) {
-        int c; while ((c = getchar()) != '\n' && c != EOF);
-        return defaut;
+// Lit un choix borné [1..max] avec navigation aux flèches.
+int lireChoixIntervalle(int min, int max, int valeurInitiale) {
+    if (max < min) return min;
+
+    int choixActuel = clamp(valeurInitiale, min, max);
+    char saisie[16] = {0};
+    int tailleSaisie = 0;
+
+    printf(COLOR_CYAN "[Fleches Haut/Bas, Entrée pour valider]" COLOR_RESET "\n");
+    while (1) {
+        printf("\r\x1b[2K" COLOR_YELLOW "Selection > " COLOR_RESET "%d", choixActuel);
+        if (tailleSaisie > 0) {
+            printf("  " COLOR_CYAN "(saisie: %s)" COLOR_RESET, saisie);
+        }
+        fflush(stdout);
+
+        int key = lireToucheNavigation();
+        if (key == KEY_UP) {
+            choixActuel--;
+            if (choixActuel < min) choixActuel = max;
+        } else if (key == KEY_DOWN) {
+            choixActuel++;
+            if (choixActuel > max) choixActuel = min;
+        } else if (key == KEY_BACKSPACE) {
+            if (tailleSaisie > 0) {
+                tailleSaisie--;
+                saisie[tailleSaisie] = '\0';
+                if (tailleSaisie > 0) {
+                    int v = atoi(saisie);
+                    choixActuel = clamp(v, min, max);
+                }
+            }
+        } else if (key == KEY_ENTER) {
+            if (tailleSaisie > 0) {
+                int v = atoi(saisie);
+                if (v >= min && v <= max) {
+                    choixActuel = v;
+                }
+            }
+            printf("\n");
+            return choixActuel;
+        } else if (key >= '0' && key <= '9') {
+            if (tailleSaisie < (int)sizeof(saisie) - 1) {
+                saisie[tailleSaisie++] = (char)key;
+                saisie[tailleSaisie] = '\0';
+                int v = atoi(saisie);
+                choixActuel = clamp(v, min, max);
+            }
+        }
     }
-    return choix;
+}
+
+int lireChoix(int max) {
+    if (max <= 0) return 0;
+    return lireChoixIntervalle(1, max, 1);
+}
+
+int lireMenuInteractif(const char *titre, const char *const options[], int nbOptions, int valeurInitiale, int autoriserRetourZero) {
+    if (nbOptions <= 0 || options == NULL) return 0;
+
+    viderBufferEntree();
+
+    int min = autoriserRetourZero ? 0 : 1;
+    int max = nbOptions;
+    int choixActuel = clamp(valeurInitiale, min, max);
+    char saisie[16] = {0};
+    int tailleSaisie = 0;
+    int lignes = nbOptions + (autoriserRetourZero ? 1 : 0);
+
+    if (titre != NULL && titre[0] != '\0') {
+        printf(COLOR_BOLD "%s" COLOR_RESET "\n", titre);
+    }
+    printf(COLOR_CYAN "[Fleches Haut/Bas, Entree pour valider]" COLOR_RESET "\n");
+
+    for (int i = 0; i < lignes; i++) {
+        printf("\n");
+    }
+
+    while (1) {
+        printf("\x1b[%dA", lignes);
+
+        for (int i = 0; i < lignes; i++) {
+            int valeur = autoriserRetourZero ? i : i + 1;
+            const char *label = (autoriserRetourZero && i == 0)
+                ? "Annuler / Retour"
+                : options[valeur - 1];
+
+            printf("\r\x1b[2K");
+            if (valeur == choixActuel) {
+                printf(COLOR_YELLOW COLOR_BOLD " > [%d] %s" COLOR_RESET "\n", valeur, label);
+            } else {
+                if (autoriserRetourZero && valeur == 0) {
+                    printf(COLOR_RED "   [0] %s" COLOR_RESET "\n", label);
+                } else {
+                    printf(COLOR_CYAN "   [%d] " COLOR_RESET COLOR_WHITE "%s" COLOR_RESET "\n", valeur, label);
+                }
+            }
+        }
+        fflush(stdout);
+
+        int key = lireToucheNavigation();
+        if (key == KEY_UP) {
+            choixActuel--;
+            if (choixActuel < min) choixActuel = max;
+        } else if (key == KEY_DOWN) {
+            choixActuel++;
+            if (choixActuel > max) choixActuel = min;
+        } else if (key == KEY_BACKSPACE) {
+            if (tailleSaisie > 0) {
+                tailleSaisie--;
+                saisie[tailleSaisie] = '\0';
+                if (tailleSaisie > 0) {
+                    int v = atoi(saisie);
+                    choixActuel = clamp(v, min, max);
+                }
+            }
+        } else if (key == KEY_ENTER) {
+            if (tailleSaisie > 0) {
+                int v = atoi(saisie);
+                if (v >= min && v <= max) {
+                    choixActuel = v;
+                }
+            }
+            printf(COLOR_GREEN "\nSelection validee: %d\n" COLOR_RESET, choixActuel);
+            return choixActuel;
+        } else if (key >= '0' && key <= '9') {
+            if (tailleSaisie < (int)sizeof(saisie) - 1) {
+                saisie[tailleSaisie++] = (char)key;
+                saisie[tailleSaisie] = '\0';
+                int v = atoi(saisie);
+                if (v >= min && v <= max) {
+                    choixActuel = v;
+                }
+            }
+        }
+    }
 }
 
 // Petite fonction utilitaire pour l'affichage coloré

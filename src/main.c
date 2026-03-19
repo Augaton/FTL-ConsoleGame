@@ -24,7 +24,7 @@ unsigned int genererSeedDepuisTexte(const char *str) {
 // --- MAIN ---
 int main() {
     srand(time(NULL));
-    Vaisseau joueur;
+    Vaisseau joueur = {0};
     int choixMenu;
 
     printf(COLOR_CYAN "╔════════════════════════════════════════╗\n");
@@ -38,12 +38,15 @@ int main() {
     if (chargerPartie(&joueur)) {
         printf(COLOR_GREEN "\n[INFO] Sauvegarde trouvée (Secteur %d - %s).\n" COLOR_RESET, 
                joueur.distanceParcourue, joueur.nom);
-        printf(COLOR_BLUE "1. Continuer la mission\n");
-        printf("2. Nouvelle partie (Écrase la sauvegarde)" COLOR_RESET);
-        printf(COLOR_YELLOW "\n> " COLOR_RESET);
-        
-        scanf("%d", &choixMenu);
-        while(getchar() != '\n'); // Nettoyage buffer
+        const char *optionsDemarrage[] = {
+            "Continuer la mission",
+            "Nouvelle partie (ecrase la sauvegarde)"
+        };
+        choixMenu = lireMenuInteractif(COLOR_BLUE "\nChoix de demarrage" COLOR_RESET,
+                                       optionsDemarrage,
+                                       2,
+                                       1,
+                                       0);
 
         if (choixMenu == 1) {
             chargementReussi = 1;
@@ -63,6 +66,8 @@ int main() {
         // APPEL DE TA NOUVELLE FONCTION PROPRE
         initialiserNouvellePartie(&joueur);
     }
+
+    enregistrerJoueur(&joueur);
 
     // --- BOUCLE PRINCIPALE DU JEU ---
     while (joueur.coque > 0 && joueur.distanceParcourue < joueur.distanceObjectif) {
