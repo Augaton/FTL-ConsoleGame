@@ -111,10 +111,11 @@ static int traiterChoixNavigation(Vaisseau *joueur, int choix) {
         menuEtatVaisseau(joueur);
     }
     else if (choix == 4) {
-        char confirm;
-        printf(COLOR_RED "\n[DANGER] Etes-vous sûr de vouloir autodétruire le vaisseau ? (o/n) > " COLOR_RESET);
-        scanf("%c", &confirm);
-        if (confirm == 'o' || confirm == 'O') {
+        printf(COLOR_RED "\n[DANGER] Etes-vous sûr de vouloir autodétruire le vaisseau ?" COLOR_RESET "\n");
+        printf("1. Oui, lancer l'autodestruction\n");
+        printf("2. Non, retour au cockpit\n");
+        int confirm = lireChoix(2);
+        if (confirm == 1) {
             printf(COLOR_RED "\nProtocole d'autodestruction engagé...\n" COLOR_RESET);
             SLEEP_MS(1000);
             joueur->coque = 0;
@@ -134,7 +135,7 @@ static int traiterChoixNavigation(Vaisseau *joueur, int choix) {
 void menuVoyage(Vaisseau *joueur) {
     while (joueur->coque > 0) {
         afficherHUDNavigation(joueur);
-        int choix = lireChoix(-1);
+        int choix = lireChoixIntervalle(1, 99, 1);
         if (!traiterChoixNavigation(joueur, choix)) break;
     }
 }
@@ -155,7 +156,7 @@ void lancerSequenceDeSaut(Vaisseau *joueur) {
     printf(COLOR_RED "0. ANNULER LA PROCÉDURE (Retour au cockpit)" COLOR_RESET "\n");
     printf(COLOR_YELLOW "\n Destination > " COLOR_RESET);
     
-    choixSaut = lireChoix(0);
+    choixSaut = lireChoixIntervalle(0, 2, 1);
 
     if (choixSaut == 0) {
         printf(COLOR_CYAN "\nCalculs de trajectoire annulés. Moteurs en veille.\n" COLOR_RESET);
@@ -451,7 +452,7 @@ void evenementEpaveDerivante(Vaisseau *joueur) {
 
     printf(COLOR_YELLOW "> " COLOR_RESET);
     int choix;
-    choix = lireChoix(2);
+    choix = lireChoix(4);
 
     printf("\n");
 
@@ -543,7 +544,7 @@ void evenementPluieAsteroides(Vaisseau *joueur) {
 
     printf(COLOR_YELLOW "> " COLOR_RESET);
     int choix;
-    choix = lireChoix(1);
+    choix = lireChoix(3);
 
     if (choix == 2 && joueur->systemeBouclier.efficacite >= 3) {
         printf(COLOR_GREEN "\nLes rochers ricochent inoffensivement sur vos boucliers surchargés.\n");
@@ -652,7 +653,7 @@ void evenementMarchandAmbulant(Vaisseau *joueur) {
     
     printf(COLOR_YELLOW "> " COLOR_RESET);
     int choix;
-    choix = lireChoix(3);
+    choix = lireChoix(4);
 
     if (choix == 1) {
         if (joueur->ferraille >= MARCHAND_COUT_CARBURANT) {
@@ -801,7 +802,7 @@ void evenementLoterie(Vaisseau *joueur) {
     
     printf(COLOR_YELLOW "> " COLOR_RESET);
     int choix;
-    choix = lireChoix(3);
+    choix = lireChoix(4);
 
     if (choix == 1 && joueur->ferraille >= CASINO_MISE_MIN) {
         joueur->ferraille -= CASINO_MISE_MIN;
@@ -850,7 +851,7 @@ void evenementPeagePirate(Vaisseau *joueur) {
 
     printf(COLOR_YELLOW "> " COLOR_RESET);
     int choix;
-    choix = lireChoix(2);
+    choix = lireChoix(3);
 
     if (choix == 1) {
         if (joueur->ferraille >= PEAGE_PIRATE_COUT) {

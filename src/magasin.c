@@ -103,10 +103,7 @@ void ouvrirMagasin(Vaisseau *joueur) {
         printf(COLOR_GREEN "╚══════════════════════════════════════════════════════════╝" COLOR_RESET "\n");
         
         printf("\n " COLOR_YELLOW "Choisir catégorie > " COLOR_RESET);
-        if (scanf("%d", &categorie) != 1) {
-            int c; while ((c = getchar()) != '\n' && c != EOF);
-            continue;
-        }
+        categorie = lireChoix(5);
 
         // --- 1. MAINTENANCE ---
         if (categorie == 1) {
@@ -116,7 +113,7 @@ void ouvrirMagasin(Vaisseau *joueur) {
             printf("2. Missiles (+3)       | 15 Fer. | Stock: %d\n", stockMissiles);
             printf("3. Carburant (x1)      | 05 Fer. | Stock: %d\n", stockCarburant);
             printf("4. Retour\n > ");
-            scanf("%d", &choix);
+            choix = lireChoix(4);
 
             if (choix == 1 && joueur->ferraille >= 10 && joueur->coque < joueur->coqueMax) {
                 joueur->ferraille -= 10;
@@ -180,7 +177,7 @@ void ouvrirMagasin(Vaisseau *joueur) {
             
             printf("6. Retour\n > ");
             
-            scanf("%d", &choix);
+            choix = lireChoix(6);
 
             int achatEffectue = 0;
             if (choix == 1 && joueur->ferraille >= prixArme) {
@@ -221,7 +218,7 @@ void ouvrirMagasin(Vaisseau *joueur) {
             printf("1. Vendre 1 Carburant (+4 Ferraille)\n");
             printf("2. Recycler Arme Actuelle (Gain : Rang * 12)\n"); 
             printf("3. Retour\n > ");
-            scanf("%d", &choix);
+            choix = lireChoix(3);
 
             if (choix == 1 && joueur->carburant > 0) {
                 joueur->carburant--; joueur->ferraille += 4;
@@ -242,7 +239,7 @@ void ouvrirMagasin(Vaisseau *joueur) {
             printf("1. Recruter un mercenaire (Achat)\n");
             printf("2. Renvoyer un membre (Vente / Recyclage)\n");
             printf("3. Retour\n > ");
-            scanf("%d", &choix);
+            choix = lireChoix(3);
 
             // ACHAT DE PERSONNEL
             if (choix == 1) {
@@ -264,7 +261,7 @@ void ouvrirMagasin(Vaisseau *joueur) {
                     }
                     printf("0. Annuler\n> ");
                     int recrueChoix;
-                    scanf("%d", &recrueChoix);
+                    recrueChoix = lireChoixIntervalle(0, 3, 1);
 
                     if (recrueChoix >= 1 && recrueChoix <= 3) {
                         Candidat *c = &recrues[recrueChoix-1];
@@ -323,7 +320,7 @@ void ouvrirMagasin(Vaisseau *joueur) {
                 
                 printf("Entrez le numéro du membre à renvoyer (0 pour Annuler) > ");
                 int renvoi;
-                scanf("%d", &renvoi);
+                renvoi = lireChoixIntervalle(0, 3, 1);
 
                 if (renvoi > 1 && renvoi <= 3) { // On interdit de vendre le slot 1 (Commandant)
                     int idx = renvoi - 1;

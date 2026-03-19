@@ -41,9 +41,8 @@ int main() {
         printf(COLOR_BLUE "1. Continuer la mission\n");
         printf("2. Nouvelle partie (Écrase la sauvegarde)" COLOR_RESET);
         printf(COLOR_YELLOW "\n> " COLOR_RESET);
-        
-        scanf("%d", &choixMenu);
-        while(getchar() != '\n'); // Nettoyage buffer
+
+        choixMenu = lireChoix(2);
 
         if (choixMenu == 1) {
             chargementReussi = 1;

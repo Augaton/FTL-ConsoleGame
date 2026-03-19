@@ -145,10 +145,7 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
         printf(COLOR_GREEN "4. ANALYSER LE VAISSEAU\n" COLOR_RESET);
         printf(COLOR_YELLOW "> " COLOR_RESET);
         
-        if (scanf("%d", &choixAction) != 1) { 
-            int c; while ((c = getchar()) != '\n' && c != EOF); 
-            continue; 
-        }
+        choixAction = lireChoix(4);
 
         // --- 1. ATTAQUER ---
         if (choixAction == 1) {
@@ -165,6 +162,7 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
             if (esquiveFinaleSysteme < 0) esquiveFinaleSysteme = 0;
             int chanceSysteme = 100 - esquiveFinaleSysteme;
             if (chanceSysteme < 0) chanceSysteme = 0;
+            if (chanceSysteme > 100) chanceSysteme = 100;
 
             // Menu Cible
             printf(COLOR_BLUE "\n--- CHOIX DE LA CIBLE ---\n" COLOR_RESET);
@@ -173,7 +171,7 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
             printf("3. Syst. Moteurs   [" COLOR_YELLOW "%d%%" COLOR_RESET " Toucher] -> " COLOR_RED "Annule l'esquive" COLOR_RESET "\n", chanceSysteme);
             printf(COLOR_WHITE "0. RETOUR\n" COLOR_RESET);
             printf(COLOR_YELLOW "> " COLOR_RESET);
-            scanf("%d", &choixCible);
+            choixCible = lireChoixIntervalle(0, 3, 1);
             if (choixCible == 0) continue; 
 
             // Menu Arme
@@ -182,7 +180,7 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
             printf("2. Missile (Stock: %d)\n", joueur->missiles);
             printf(COLOR_WHITE "0. RETOUR\n" COLOR_RESET);
             printf(COLOR_YELLOW "> " COLOR_RESET);
-            scanf("%d", &choixArme);
+            choixArme = lireChoixIntervalle(0, 2, 1);
             if (choixArme == 0) continue; 
 
             // EXECUTION TIR
@@ -313,8 +311,6 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
                 }
             }
 
-            joueur->bouclierActuel += regen;
-            
             // NOUVEAU CALCUL DU MAX
             int maxTotal = joueur->systemeBouclier.efficacite + getBonusCapaciteBouclier(joueur);
             
@@ -429,7 +425,8 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
 }
 
 bool checkEsquive(int chanceEsquive, Vaisseau *attaquant) {
-    int esquiveFinale = chanceEsquive - attaquant->precision;
+    (void)attaquant;
+    int esquiveFinale = chanceEsquive;
     if (esquiveFinale < 0) esquiveFinale = 0;
     if (esquiveFinale > 80) esquiveFinale = 80;
 

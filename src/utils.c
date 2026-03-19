@@ -3,6 +3,62 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifndef _WIN32
+#include <termios.h>
+#include <unistd.h>
+#endif
+
+enum {
+    KEY_NONE = 0,
+    KEY_UP = 1001,
+    KEY_DOWN = 1002,
+    KEY_ENTER = 1003,
+    KEY_BACKSPACE = 1004
+};
+
+static int clamp(int value, int min, int max) {
+    if (value < min) return min;
+    if (value > max) return max;
+    return value;
+}
+
+static int lireToucheNavigation(void) {
+#ifdef _WIN32
+    int ch = getchar();
+    if (ch == '\r' || ch == '\n') return KEY_ENTER;
+    if (ch == 8 || ch == 127) return KEY_BACKSPACE;
+    return ch;
+#else
+    struct termios oldt;
+    if (tcgetattr(STDIN_FILENO, &oldt) != 0) {
+        int ch = getchar();
+        if (ch == '\r' || ch == '\n') return KEY_ENTER;
+        return ch;
+    }
+
+    struct termios newt = oldt;
+    newt.c_lflag &= ~(ICANON | ECHO);
+    newt.c_cc[VMIN] = 1;
+    newt.c_cc[VTIME] = 0;
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+
+    int ch = getchar();
+
+    if (ch == 27) {
+        int b = getchar();
+        int c = getchar();
+        if (b == '[' && c == 'A') ch = KEY_UP;
+        else if (b == '[' && c == 'B') ch = KEY_DOWN;
+    } else if (ch == '\r' || ch == '\n') {
+        ch = KEY_ENTER;
+    } else if (ch == 8 || ch == 127) {
+        ch = KEY_BACKSPACE;
+    }
+
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    return ch;
+#endif
+}
 
 void effacerEcran() {
     #ifdef _WIN32
@@ -61,9 +117,10 @@ void afficherVictoire(Vaisseau *joueur) {
 
 void attendreJoueur() {
     printf(COLOR_CYAN "\n[ Appuyez sur ENTREE pour continuer ]" COLOR_RESET);
-    int c;
-    while ((c = getchar()) != '\n' && c != EOF); // Nettoie le buffer
-    getchar();
+    char buffer[8];
+    if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
+        clearerr(stdin);
+    }
 }
 
 // Sauvegarde et chargement
@@ -278,16 +335,61 @@ int lireEntierSecurise(int min, int max) {
     }
 }
 
-// Lit un choix de menu depuis stdin.
-// Retourne la valeur saisie, ou `defaut` si l'entrée est invalide.
-// Ne vérifie pas de bornes — c'est à l'appelant de gérer les cas inattendus.
-int lireChoix(int defaut) {
-    int choix;
-    if (scanf("%d", &choix) != 1) {
-        int c; while ((c = getchar()) != '\n' && c != EOF);
-        return defaut;
+// Lit un choix borné [1..max] avec navigation aux flèches.
+int lireChoixIntervalle(int min, int max, int valeurInitiale) {
+    if (max < min) return min;
+
+    int choixActuel = clamp(valeurInitiale, min, max);
+    char saisie[16] = {0};
+    int tailleSaisie = 0;
+
+    printf(COLOR_CYAN "[Fleches Haut/Bas, Entrée pour valider]" COLOR_RESET "\n");
+    while (1) {
+        printf("\r\x1b[2K" COLOR_YELLOW "Selection > " COLOR_RESET "%d", choixActuel);
+        if (tailleSaisie > 0) {
+            printf("  " COLOR_CYAN "(saisie: %s)" COLOR_RESET, saisie);
+        }
+        fflush(stdout);
+
+        int key = lireToucheNavigation();
+        if (key == KEY_UP) {
+            choixActuel--;
+            if (choixActuel < min) choixActuel = max;
+        } else if (key == KEY_DOWN) {
+            choixActuel++;
+            if (choixActuel > max) choixActuel = min;
+        } else if (key == KEY_BACKSPACE) {
+            if (tailleSaisie > 0) {
+                tailleSaisie--;
+                saisie[tailleSaisie] = '\0';
+                if (tailleSaisie > 0) {
+                    int v = atoi(saisie);
+                    choixActuel = clamp(v, min, max);
+                }
+            }
+        } else if (key == KEY_ENTER) {
+            if (tailleSaisie > 0) {
+                int v = atoi(saisie);
+                if (v >= min && v <= max) {
+                    choixActuel = v;
+                }
+            }
+            printf("\n");
+            return choixActuel;
+        } else if (key >= '0' && key <= '9') {
+            if (tailleSaisie < (int)sizeof(saisie) - 1) {
+                saisie[tailleSaisie++] = (char)key;
+                saisie[tailleSaisie] = '\0';
+                int v = atoi(saisie);
+                choixActuel = clamp(v, min, max);
+            }
+        }
     }
-    return choix;
+}
+
+int lireChoix(int max) {
+    if (max <= 0) return 0;
+    return lireChoixIntervalle(1, max, 1);
 }
 
 // Petite fonction utilitaire pour l'affichage coloré

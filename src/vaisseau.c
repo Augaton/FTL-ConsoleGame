@@ -209,11 +209,7 @@ void menuEtatVaisseau(Vaisseau *joueur) {
         printf(" [0]   " COLOR_WHITE "RETOUR" COLOR_RESET "\n");
         printf(COLOR_YELLOW "\n > " COLOR_RESET);
 
-        int choix;
-        if (scanf("%d", &choix) != 1) { 
-            int c; while ((c = getchar()) != '\n' && c != EOF); 
-            continue; 
-        }
+        int choix = lireChoixIntervalle(0, 5, 1);
 
         // --- LOGIQUE DES ACTIONS ---
 
@@ -228,8 +224,7 @@ void menuEtatVaisseau(Vaisseau *joueur) {
                 printf("3. Soldat    (+Dégâts Armes)\n");
                 printf("0. Annuler\n> ");
                 
-                int r;
-                scanf("%d", &r);
+                int r = lireChoixIntervalle(0, 3, 1);
                 if (r == 1) m->role = ROLE_PILOTE;
                 if (r == 2) m->role = ROLE_INGENIEUR;
                 if (r == 3) m->role = ROLE_SOLDAT;
