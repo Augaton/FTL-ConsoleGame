@@ -544,7 +544,7 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
         }
 
         // --- RÉSOLUTION TIR ENNEMI ---
-        if (checkEsquive(esquiveJoueur - bonusPrecisionIA, joueur)) {
+            if (checkEsquive(esquiveJoueur - bonusPrecisionIA, ennemi)) {
             printf(COLOR_GREEN "\nESQUIVE ! Vous évitez le tir.\n" COLOR_RESET);
 
             for(int i=0; i<3; i++) {
@@ -597,8 +597,10 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
 }
 
 bool checkEsquive(int chanceEsquive, Vaisseau *attaquant) {
-    (void)attaquant;
     int esquiveFinale = chanceEsquive;
+    if (attaquant != NULL) {
+        esquiveFinale -= attaquant->precision;
+    }
     if (esquiveFinale < 0) esquiveFinale = 0;
     if (esquiveFinale > 80) esquiveFinale = 80;
 

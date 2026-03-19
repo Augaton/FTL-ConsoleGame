@@ -7,12 +7,15 @@
 #ifndef _WIN32
 #include <termios.h>
 #include <unistd.h>
+#else
+#include <conio.h>
 #endif
 
 /* --- Gestionnaire d'interruption (Ctrl+C) --- */
 static Vaisseau *g_joueur_ptr        = NULL;
 static Vaisseau  g_checkpoint;
 static int       g_checkpoint_valide = 0;
+static volatile sig_atomic_t g_interruption_recue = 0;
 
 #ifndef _WIN32
 static struct termios g_termios_original;
@@ -23,26 +26,44 @@ static void restaurerTerminal(void) {
         tcsetattr(STDIN_FILENO, TCSANOW, &g_termios_original);
 }
 
-static void gestionSIGINT(int sig) {
-    (void)sig;
+static void traiterInterruptionEnAttente(void) {
+    if (!g_interruption_recue) return;
+
+    g_interruption_recue = 0;
     restaurerTerminal();
     printf("\n\n" COLOR_YELLOW "[SYSTEME] Interruption reçue." COLOR_RESET "\n");
     if (g_checkpoint_valide && g_joueur_ptr != NULL) {
         *g_joueur_ptr = g_checkpoint;
-        printf(COLOR_GREEN "[SYSTEME] Opération annulée — état précédent restauré.\n" COLOR_RESET);
+        printf(COLOR_GREEN "[SYSTEME] Opération annulée - état précédent restauré.\n" COLOR_RESET);
         sauvegarderPartie(g_joueur_ptr);
     }
     exit(0);
 }
-#else
+
 static void gestionSIGINT(int sig) {
     (void)sig;
+    g_interruption_recue = 1;
+}
+#else
+static void restaurerTerminal(void) {
+}
+
+static void traiterInterruptionEnAttente(void) {
+    if (!g_interruption_recue) return;
+
+    g_interruption_recue = 0;
     printf("\n\n[SYSTEME] Interruption reçue.\n");
     if (g_checkpoint_valide && g_joueur_ptr != NULL) {
         *g_joueur_ptr = g_checkpoint;
+        printf("[SYSTEME] Opération annulée - état précédent restauré.\n");
         sauvegarderPartie(g_joueur_ptr);
     }
     exit(0);
+}
+
+static void gestionSIGINT(int sig) {
+    (void)sig;
+    g_interruption_recue = 1;
 }
 #endif
 
@@ -75,6 +96,7 @@ static int clamp(int value, int min, int max) {
 }
 
 static void viderBufferEntree(void) {
+    traiterInterruptionEnAttente();
 #ifndef _WIN32
     tcflush(STDIN_FILENO, TCIFLUSH);
 #else
@@ -83,8 +105,15 @@ static void viderBufferEntree(void) {
 }
 
 static int lireToucheNavigation(void) {
+    traiterInterruptionEnAttente();
 #ifdef _WIN32
-    int ch = getchar();
+    int ch = _getch();
+    if (ch == 0 || ch == 224) {
+        int ch2 = _getch();
+        if (ch2 == 72) return KEY_UP;
+        if (ch2 == 80) return KEY_DOWN;
+        return KEY_NONE;
+    }
     if (ch == '\r' || ch == '\n') return KEY_ENTER;
     if (ch == 8 || ch == 127) return KEY_BACKSPACE;
     return ch;
@@ -177,11 +206,13 @@ void afficherVictoire(Vaisseau *joueur) {
 
 void attendreJoueur() {
     viderBufferEntree();
+    traiterInterruptionEnAttente();
     printf(COLOR_CYAN "\n[ Appuyez sur ENTREE pour continuer ]" COLOR_RESET);
     char buffer[8];
     if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
         clearerr(stdin);
     }
+    traiterInterruptionEnAttente();
 }
 
 // Sauvegarde et chargement
@@ -259,12 +290,9 @@ int chargerPartie(Vaisseau *v) {
     }
 
     if (version < SAVE_VERSION) {
-        fclose(f);
-        printf(COLOR_YELLOW "[SAVE] Sauvegarde ancienne version (v%d → v%d). "
-               "Impossible de charger.\n" COLOR_RESET, version, SAVE_VERSION);
-        printf("Appuyez sur ENTREE pour démarrer une nouvelle partie...\n");
-        getchar();
-        return 0;
+        printf(COLOR_YELLOW "[SAVE] Sauvegarde ancienne version (v%d -> v%d). "
+               "Chargement avec valeurs par défaut pour les champs manquants.\n"
+               COLOR_RESET, version, SAVE_VERSION);
     }
 
     // --- Lecture ligne par ligne ---
@@ -385,6 +413,7 @@ int lireEntierSecurise(int min, int max) {
     char buffer[100]; // On lit une ligne de texte pour éviter les bugs de scanf
 
     while (1) {
+        traiterInterruptionEnAttente();
         // On lit toute la ligne (jusqu'à Entrée)
         if (fgets(buffer, sizeof(buffer), stdin) != NULL) {
             // On essaie de convertir le texte en nombre
@@ -407,6 +436,8 @@ int lireEntierSecurise(int min, int max) {
 int lireChoixIntervalle(int min, int max, int valeurInitiale) {
     if (max < min) return min;
 
+    traiterInterruptionEnAttente();
+
     int choixActuel = clamp(valeurInitiale, min, max);
     char saisie[16] = {0};
     int tailleSaisie = 0;
@@ -420,6 +451,7 @@ int lireChoixIntervalle(int min, int max, int valeurInitiale) {
         fflush(stdout);
 
         int key = lireToucheNavigation();
+        traiterInterruptionEnAttente();
         if (key == KEY_UP) {
             choixActuel--;
             if (choixActuel < min) choixActuel = max;
@@ -463,6 +495,7 @@ int lireChoix(int max) {
 int lireMenuInteractif(const char *titre, const char *const options[], int nbOptions, int valeurInitiale, int autoriserRetourZero) {
     if (nbOptions <= 0 || options == NULL) return 0;
 
+    traiterInterruptionEnAttente();
     viderBufferEntree();
 
     int min = autoriserRetourZero ? 0 : 1;
@@ -504,6 +537,7 @@ int lireMenuInteractif(const char *titre, const char *const options[], int nbOpt
         fflush(stdout);
 
         int key = lireToucheNavigation();
+        traiterInterruptionEnAttente();
         if (key == KEY_UP) {
             choixActuel--;
             if (choixActuel < min) choixActuel = max;
