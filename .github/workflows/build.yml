@@ -6,8 +6,17 @@ on:
       - main
   workflow_dispatch:
 
+concurrency:
+  group: build-release-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
-  contents: write
+  contents: read
+
+env:
+  LINUX_BINARY: build/ftl_rpg
+  WINDOWS_BINARY: build/FTL_Windows.exe
+  SOURCE_ARCHIVE: release_assets/FTL_Source_Code.zip
 
 jobs:
   # ======================================================
@@ -32,6 +41,7 @@ jobs:
     name: 🐧 Build Linux
     needs: check-integrity
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       
@@ -39,11 +49,15 @@ jobs:
         # On lance simplement make. Il va lire ton fichier et créer build/ftl_rpg
         run: make
 
+      - name: Vérifier binaire Linux
+        run: test -f "$LINUX_BINARY"
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: binary-linux
-          path: build/ftl_rpg
+          path: ${{ env.LINUX_BINARY }}
+          if-no-files-found: error
 
   # ======================================================
   # 3. BUILD WINDOWS (Cross-Compilation via Make)
@@ -52,26 +66,31 @@ jobs:
     name: 🪟 Build Windows
     needs: check-integrity
     runs-on: ubuntu-latest # On reste sur Linux pour utiliser 'make' et 'rm' sans bug
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       
       - name: Installation MinGW (Cross-Compiler)
         run: |
           sudo apt-get update
-          sudo apt-get install -y mingw-w64
+          sudo apt-get install -y --no-install-recommends mingw-w64
 
       - name: Compilation Windows avec Make
         # L'ASTUCE EST ICI :
         # On surcharge les variables du Makefile :
         # 1. CC : On remplace 'gcc' par le compilateur Windows 'x86_64-w64-mingw32-gcc'
         # 2. EXEC : On change le nom de sortie pour ajouter .exe
-        run: make CC=x86_64-w64-mingw32-gcc EXEC=build/FTL_Windows.exe
+        run: make CC=x86_64-w64-mingw32-gcc EXEC=$WINDOWS_BINARY
+
+      - name: Vérifier binaire Windows
+        run: test -f "$WINDOWS_BINARY"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: binary-windows
-          path: build/FTL_Windows.exe
+          path: ${{ env.WINDOWS_BINARY }}
+          if-no-files-found: error
 
   # ======================================================
   # 4. RELEASE & PUBLISH
@@ -81,6 +100,8 @@ jobs:
     needs: [build-linux, build-windows]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
     
     steps:
       - name: Checkout Code
@@ -99,14 +120,13 @@ jobs:
           path: release_assets
 
       - name: Zip Source Code
-        run: |
-          zip -r release_assets/FTL_Source_Code.zip . -x "*.git*" "*.github*" "release_assets*" "build*"
+        run: git archive --format=zip --output="$SOURCE_ARCHIVE" HEAD
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ github.run_number }}
-          name: V ${{ github.run_number }}
+          name: FTL Console v${{ github.run_number }}
           body: |
             ## 🚀 FTL Console - Build ${{ github.run_number }}
             Compilation automatique via Makefile.
@@ -118,6 +138,8 @@ jobs:
           files: |
             release_assets/ftl_rpg
             release_assets/FTL_Windows.exe
-            release_assets/FTL_Source_Code.zip
+            ${{ env.SOURCE_ARCHIVE }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
           draft: false
           prerelease: false
