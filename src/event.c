@@ -44,11 +44,14 @@ static void afficherHUDNavigation(Vaisseau *joueur) {
     if (shieldCur < 0) shieldCur = 0;
     if (shieldCur > shieldMax) shieldCur = shieldMax;
 
+    int filled = (shieldMax > 0) ? (shieldCur * 10) / shieldMax : 0;
+    if (filled < 0) filled = 0;
+    if (filled > 10) filled = 10;
+
     int p = 0;
     shieldBar[p++] = '[';
     for (int i = 0; i < 10 && p < (int)sizeof(shieldBar) - 2; i++) {
-        int seuil = (shieldMax <= 0) ? 0 : (i + 1) * shieldMax / 10;
-        if (shieldCur >= seuil && shieldCur > 0) shieldBar[p++] = '+';
+        if (i < filled && shieldCur > 0) shieldBar[p++] = '+';
         else shieldBar[p++] = '.';
     }
     shieldBar[p++] = ']';
@@ -125,7 +128,7 @@ static int traiterChoixNavigation(Vaisseau *joueur, int choix) {
             SLEEP_MS(800);
         }
     }
-    else if (choix == 99) {
+    else if (choix == 5) {
         ouvrirMenuDebug(joueur);
     }
     return 1; // Continuer la boucle
@@ -148,13 +151,14 @@ void menuVoyage(Vaisseau *joueur) {
         "Engager le saut spatial",
         explorationLabel,
         "Gerer le vaisseau / inventaire",
-        "Abandonner la mission"
+        "Abandonner la mission",
+        "Menu debug / maintenance"
     };
 
     afficherHUDNavigation(joueur);
     int choix = lireMenuInteractif(COLOR_CYAN "\n[ ORDRES DE MISSION ]" COLOR_RESET,
                                    optionsNavigation,
-                                   4,
+                                   5,
                                    1,
                                    0);
     traiterChoixNavigation(joueur, choix);
@@ -372,8 +376,8 @@ void executerEvenement(Vaisseau *joueur, const char* type) {
 void lancerEvenementAleatoire(Vaisseau *joueur) {
     afficherTitreNeon(COLOR_MAGENTA, "EVENEMENT DYNAMIQUE DETECTE");
 
-    // Seed chaotique : temps + adresse mémoire (portable) + seed secteur
-   unsigned int seedChaos = joueur->seedSecteur ^ (joueur->distanceParcourue * 2654435761u) ^ (joueur->explorationActuelle * 40503u);
+    // Seed chaotique : seed secteur + distance parcourue + exploration actuelle
+    unsigned int seedChaos = joueur->seedSecteur ^ (joueur->distanceParcourue * 2654435761u) ^ (joueur->explorationActuelle * 40503u);
     srand(seedChaos);
     rand(); rand(); // Chauffe le générateur
 
