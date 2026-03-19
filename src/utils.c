@@ -408,7 +408,7 @@ int lireMenuInteractif(const char *titre, const char *const options[], int nbOpt
     int lignes = nbOptions + (autoriserRetourZero ? 1 : 0);
 
     if (titre != NULL && titre[0] != '\0') {
-        printf("%s\n", titre);
+        printf(COLOR_BOLD "%s" COLOR_RESET "\n", titre);
     }
     printf(COLOR_CYAN "[Fleches Haut/Bas, Entree pour valider]" COLOR_RESET "\n");
 
@@ -427,9 +427,13 @@ int lireMenuInteractif(const char *titre, const char *const options[], int nbOpt
 
             printf("\r\x1b[2K");
             if (valeur == choixActuel) {
-                printf(COLOR_YELLOW " > [%d] %s" COLOR_RESET "\n", valeur, label);
+                printf(COLOR_YELLOW COLOR_BOLD " > [%d] %s" COLOR_RESET "\n", valeur, label);
             } else {
-                printf("   [%d] %s\n", valeur, label);
+                if (autoriserRetourZero && valeur == 0) {
+                    printf(COLOR_RED "   [0] %s" COLOR_RESET "\n", label);
+                } else {
+                    printf(COLOR_CYAN "   [%d] " COLOR_RESET COLOR_WHITE "%s" COLOR_RESET "\n", valeur, label);
+                }
             }
         }
         fflush(stdout);
@@ -457,7 +461,7 @@ int lireMenuInteractif(const char *titre, const char *const options[], int nbOpt
                     choixActuel = v;
                 }
             }
-            printf("\n");
+            printf(COLOR_GREEN "\nSelection validee: %d\n" COLOR_RESET, choixActuel);
             return choixActuel;
         } else if (key >= '0' && key <= '9') {
             if (tailleSaisie < (int)sizeof(saisie) - 1) {

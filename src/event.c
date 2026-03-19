@@ -1025,21 +1025,21 @@ void ouvrirMenuDebug(Vaisseau *joueur) {
         printf("╚══════════════════════════════════════════════════╝" COLOR_RESET "\n");
         
         printf(COLOR_GREEN " --- RESSOURCES ---" COLOR_RESET "\n");
-        printf(" 1. Soin Total + Carburant Max + Missiles Max\n");
-        printf(" 2. +1000 Ferrailles\n");
-        printf(" 3. Boost Equipement (Arme/Bouclier/Moteur Max)\n");
+        printf(" " COLOR_YELLOW "1." COLOR_RESET " Soin Total + Carburant Max + Missiles Max\n");
+        printf(" " COLOR_YELLOW "2." COLOR_RESET " +1000 Ferrailles\n");
+        printf(" " COLOR_YELLOW "3." COLOR_RESET " Boost Equipement (Arme/Bouclier/Moteur Max)\n");
 
         printf(COLOR_CYAN "\n --- EVENEMENTS ---" COLOR_RESET "\n");
-        printf(" 4. Lancer Casino (Pour tester le braquage)\n");
-        printf(" 5. Lancer Marchand (Pour tester l'attaque)\n");
-        printf(" 6. Lancer Pluie d'Astéroides\n");
-        printf(" 7. Lancer L'Ermite Fou\n");
-        printf(" 8. Lancer Signal de Détresse\n");
+        printf(" " COLOR_YELLOW "4." COLOR_RESET " Lancer Casino (Pour tester le braquage)\n");
+        printf(" " COLOR_YELLOW "5." COLOR_RESET " Lancer Marchand (Pour tester l'attaque)\n");
+        printf(" " COLOR_YELLOW "6." COLOR_RESET " Lancer Pluie d'Asteroides\n");
+        printf(" " COLOR_YELLOW "7." COLOR_RESET " Lancer L'Ermite Fou\n");
+        printf(" " COLOR_YELLOW "8." COLOR_RESET " Lancer Signal de Detresse\n");
 
         printf(COLOR_RED "\n --- COMBAT ---" COLOR_RESET "\n");
-        printf(" 100. Spawner le BOSS FINAL (Test Suicide)\n");
+        printf(" " COLOR_MAGENTA "100." COLOR_RESET " Spawner le BOSS FINAL (Test Suicide)\n");
         
-        printf("\n 101. [QUITTER DEBUG]\n");
+        printf("\n " COLOR_RED "101." COLOR_RESET " [QUITTER DEBUG]\n");
         printf(COLOR_YELLOW " DEBUG > " COLOR_RESET);
         
         choixDebug = lireChoix(101);
