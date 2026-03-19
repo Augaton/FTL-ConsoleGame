@@ -102,18 +102,34 @@ void ouvrirMagasin(Vaisseau *joueur) {
         printf("| 5. [QUITTER]      Reprendre la navigation               |\n");
         printf(COLOR_GREEN "+----------------------------------------------------------+\n" COLOR_RESET);
         
-        printf("\n " COLOR_YELLOW "Choisir catégorie > " COLOR_RESET);
-        categorie = lireChoix(5);
+        const char *optionsCategorie[] = {
+            "[MAINTENANCE] Reparations & munitions",
+            "[UPGRADES] Systemes du vaisseau",
+            "[SERVICES] Marche noir & recyclage",
+            "[PERSONNEL] Recrutement & gestion RH",
+            "[QUITTER] Reprendre la navigation"
+        };
+        categorie = lireMenuInteractif(COLOR_YELLOW "\nChoisir categorie" COLOR_RESET,
+                                       optionsCategorie,
+                                       5,
+                                       1,
+                                       0);
 
         // --- 1. MAINTENANCE ---
         if (categorie == 1) {
             int choix = 0;
-            printf("\n" COLOR_CYAN "─── MAINTENANCE ───" COLOR_RESET "\n");
-            printf("1. Réparer Coque (+5)  | 10 Fer. | (Besoin: %d)\n", joueur->coqueMax - joueur->coque);
-            printf("2. Missiles (+3)       | 15 Fer. | Stock: %d\n", stockMissiles);
-            printf("3. Carburant (x1)      | 05 Fer. | Stock: %d\n", stockCarburant);
-            printf("4. Retour\n > ");
-            choix = lireChoix(4);
+            char optMaint1[96];
+            char optMaint2[96];
+            char optMaint3[96];
+            snprintf(optMaint1, sizeof(optMaint1), "Reparer coque (+5) | 10 Fer | Besoin: %d", joueur->coqueMax - joueur->coque);
+            snprintf(optMaint2, sizeof(optMaint2), "Missiles (+3) | 15 Fer | Stock: %d", stockMissiles);
+            snprintf(optMaint3, sizeof(optMaint3), "Carburant (+1) | 5 Fer | Stock: %d", stockCarburant);
+            const char *optionsMaintenance[] = { optMaint1, optMaint2, optMaint3, "Retour" };
+            choix = lireMenuInteractif(COLOR_CYAN "\n--- MAINTENANCE ---" COLOR_RESET,
+                                       optionsMaintenance,
+                                       4,
+                                       1,
+                                       0);
 
             if (choix == 1 && joueur->ferraille >= 10 && joueur->coque < joueur->coqueMax) {
                 joueur->ferraille -= 10;
@@ -155,29 +171,39 @@ void ouvrirMagasin(Vaisseau *joueur) {
             int prixCoque = PRIX_INFLATION(baseCoque, fatigueIngenieur);
             int prixVisee = PRIX_INFLATION(baseVisee, fatigueIngenieur);
 
-            printf("1. Upgrade %-15s (-> Mk %d) | ", joueur->systemeArme.nom, joueur->systemeArme.rang + 1);
-            if (isPromo[1]) printf(COLOR_MAGENTA "(-%d%%) " COLOR_RESET, pourcentPromo);
-            printf("%d Fer.\n", prixArme);
+            char optUp1[120];
+            char optUp2[120];
+            char optUp3[120];
+            char optUp4[120];
+            char optUp5[120];
 
-            printf("2. Upgrade %-15s (-> Mk %d) | ", joueur->systemeBouclier.nom, joueur->systemeBouclier.rang + 1);
-            if (isPromo[2]) printf(COLOR_MAGENTA "(-%d%%) " COLOR_RESET, pourcentPromo);
-            printf("%d Fer.\n", prixBouclier);
+            snprintf(optUp1, sizeof(optUp1), "Upgrade %s -> Mk %d | %d Fer%s",
+                     joueur->systemeArme.nom,
+                     joueur->systemeArme.rang + 1,
+                     prixArme,
+                     isPromo[1] ? " (promo)" : "");
+            snprintf(optUp2, sizeof(optUp2), "Upgrade %s -> Mk %d | %d Fer%s",
+                     joueur->systemeBouclier.nom,
+                     joueur->systemeBouclier.rang + 1,
+                     prixBouclier,
+                     isPromo[2] ? " (promo)" : "");
+            snprintf(optUp3, sizeof(optUp3), "Moteurs -> niveau %d | %d Fer%s",
+                     joueur->moteurs + 1,
+                     prixMoteur,
+                     isPromo[3] ? " (promo)" : "");
+            snprintf(optUp4, sizeof(optUp4), "Renforcer coque (+10 max) | %d Fer%s",
+                     prixCoque,
+                     isPromo[4] ? " (promo)" : "");
+            snprintf(optUp5, sizeof(optUp5), "Systeme de visee (+5 precision) | %d Fer%s",
+                     prixVisee,
+                     isPromo[5] ? " (promo)" : "");
 
-            printf("3. Moteurs (-> Esquive Lvl %d)           | ", joueur->moteurs + 1);
-            if (isPromo[3]) printf(COLOR_MAGENTA "(-%d%%) " COLOR_RESET, pourcentPromo);
-            printf("%d Fer.\n", prixMoteur);
-
-            printf("4. Renforcer Coque (+10 Max)               | ");
-            if (isPromo[4]) printf(COLOR_MAGENTA "(-%d%%) " COLOR_RESET, pourcentPromo);
-            printf("%d Fer.\n", prixCoque);
-            
-            printf("5. Système de Visée (+5 Precision)         | ");
-            if (isPromo[5]) printf(COLOR_MAGENTA "(-%d%%) " COLOR_RESET, pourcentPromo);
-            printf("%d Fer.\n", prixVisee);
-            
-            printf("6. Retour\n > ");
-            
-            choix = lireChoix(6);
+            const char *optionsUpgrades[] = { optUp1, optUp2, optUp3, optUp4, optUp5, "Retour" };
+            choix = lireMenuInteractif(COLOR_RED "\n--- ATELIER D'INGENIERIE ---" COLOR_RESET,
+                                       optionsUpgrades,
+                                       6,
+                                       1,
+                                       0);
 
             int achatEffectue = 0;
             if (choix == 1 && joueur->ferraille >= prixArme) {
@@ -214,11 +240,16 @@ void ouvrirMagasin(Vaisseau *joueur) {
         // --- 3. SERVICES ---
         else if (categorie == 3) {
             int choix = 0;
-            printf("\n" COLOR_YELLOW "─── SERVICES DU MARCHÉ NOIR ───" COLOR_RESET "\n");
-            printf("1. Vendre 1 Carburant (+4 Ferraille)\n");
-            printf("2. Recycler Arme Actuelle (Gain : Rang * 12)\n"); 
-            printf("3. Retour\n > ");
-            choix = lireChoix(3);
+            const char *optionsServices[] = {
+                "Vendre 1 carburant (+4 ferraille)",
+                "Recycler arme actuelle (gain: rang * 12)",
+                "Retour"
+            };
+            choix = lireMenuInteractif(COLOR_YELLOW "\n--- SERVICES DU MARCHE NOIR ---" COLOR_RESET,
+                                       optionsServices,
+                                       3,
+                                       1,
+                                       0);
 
             if (choix == 1 && joueur->carburant > 0) {
                 joueur->carburant--; joueur->ferraille += 4;
@@ -235,11 +266,16 @@ void ouvrirMagasin(Vaisseau *joueur) {
         // --- 4. PERSONNEL (NOUVEAU) ---
         else if (categorie == 4) {
             int choix = 0;
-            printf("\n" COLOR_MAGENTA "─── BUREAU DE RECRUTEMENT & RH ───" COLOR_RESET "\n");
-            printf("1. Recruter un mercenaire (Achat)\n");
-            printf("2. Renvoyer un membre (Vente / Recyclage)\n");
-            printf("3. Retour\n > ");
-            choix = lireChoix(3);
+            const char *optionsPersonnel[] = {
+                "Recruter un mercenaire",
+                "Renvoyer un membre (vente/recyclage)",
+                "Retour"
+            };
+            choix = lireMenuInteractif(COLOR_MAGENTA "\n--- BUREAU DE RECRUTEMENT & RH ---" COLOR_RESET,
+                                       optionsPersonnel,
+                                       3,
+                                       1,
+                                       0);
 
             // ACHAT DE PERSONNEL
             if (choix == 1) {
@@ -254,14 +290,21 @@ void ouvrirMagasin(Vaisseau *joueur) {
                 if (slotLibre == -1) {
                     printf(COLOR_RED "Votre vaisseau est complet (3/3). Renvoyez quelqu'un d'abord.\n" COLOR_RESET);
                 } else {
-                    printf("\n--- CANDIDATS DISPONIBLES ---\n");
-                    for(int i=0; i<3; i++) {
-                        printf("%d. %-10s [%-9s] Santé:%3d%% | Prix: " COLOR_YELLOW "%2d Fer" COLOR_RESET "\n", 
-                               i+1, recrues[i].nom, getRoleNom(recrues[i].role), recrues[i].pv, recrues[i].prix);
-                    }
-                    printf("0. Annuler\n> ");
-                    int recrueChoix;
-                    recrueChoix = lireChoixIntervalle(0, 3, 1);
+                    char optRecrue1[96];
+                    char optRecrue2[96];
+                    char optRecrue3[96];
+                    snprintf(optRecrue1, sizeof(optRecrue1), "%s [%s] Sante:%d%% | Prix:%d Fer",
+                             recrues[0].nom, getRoleNom(recrues[0].role), recrues[0].pv, recrues[0].prix);
+                    snprintf(optRecrue2, sizeof(optRecrue2), "%s [%s] Sante:%d%% | Prix:%d Fer",
+                             recrues[1].nom, getRoleNom(recrues[1].role), recrues[1].pv, recrues[1].prix);
+                    snprintf(optRecrue3, sizeof(optRecrue3), "%s [%s] Sante:%d%% | Prix:%d Fer",
+                             recrues[2].nom, getRoleNom(recrues[2].role), recrues[2].pv, recrues[2].prix);
+                    const char *optionsRecrues[] = { optRecrue1, optRecrue2, optRecrue3 };
+                    int recrueChoix = lireMenuInteractif("\n--- CANDIDATS DISPONIBLES ---",
+                                                        optionsRecrues,
+                                                        3,
+                                                        1,
+                                                        1);
 
                     if (recrueChoix >= 1 && recrueChoix <= 3) {
                         Candidat *c = &recrues[recrueChoix-1];
@@ -289,6 +332,11 @@ void ouvrirMagasin(Vaisseau *joueur) {
             // VENTE DE PERSONNEL
             else if (choix == 2) {
                 printf("\n--- GESTION DES EFFECTIFS ---\n");
+                char optRenvoi1[120];
+                char optRenvoi2[120];
+                char optRenvoi3[120];
+                char *optionsRenvoiMutable[] = { optRenvoi1, optRenvoi2, optRenvoi3 };
+
                 for(int i=0; i<3; i++) {
                     Membre *m = &joueur->equipage[i];
                     
@@ -306,21 +354,29 @@ void ouvrirMagasin(Vaisseau *joueur) {
                     if (m->estVivant) {
                          if (i == 0) {
                              printf("%d. %-12s (COMMANDANT) - " COLOR_RED "INVENDABLE" COLOR_RESET "\n", i+1, m->nom);
+                             snprintf(optionsRenvoiMutable[i], 120, "%s (COMMANDANT) - invendable", m->nom);
                          } else {
                              printf("%d. %-12s [%-9s] Santé:%3d%% - Vente: " COLOR_YELLOW "%d Fer" COLOR_RESET "\n", 
                                 i+1, m->nom, getRoleNom(m->role), m->pv, prixVente);
+                             snprintf(optionsRenvoiMutable[i], 120, "%s [%s] Sante:%d%% - Vente:%d Fer",
+                                      m->nom, getRoleNom(m->role), m->pv, prixVente);
                          }
                     } else if (strcmp(m->nom, "--- LIBRE ---") != 0) {
                         printf("%d. [CADAVRE]    %-12s          - Recyclage: " COLOR_YELLOW "%d Fer" COLOR_RESET "\n", 
                                i+1, m->nom, prixVente);
+                        snprintf(optionsRenvoiMutable[i], 120, "[CADAVRE] %s - Recyclage:%d Fer", m->nom, prixVente);
                     } else {
                         printf("%d. --- LIBRE ---\n", i+1);
+                        snprintf(optionsRenvoiMutable[i], 120, "--- LIBRE ---");
                     }
                 }
-                
-                printf("Entrez le numéro du membre à renvoyer (0 pour Annuler) > ");
-                int renvoi;
-                renvoi = lireChoixIntervalle(0, 3, 1);
+
+                const char *optionsRenvoi[] = { optRenvoi1, optRenvoi2, optRenvoi3 };
+                int renvoi = lireMenuInteractif("\nChoisir un membre a renvoyer",
+                                               optionsRenvoi,
+                                               3,
+                                               2,
+                                               1);
 
                 if (renvoi > 1 && renvoi <= 3) { // On interdit de vendre le slot 1 (Commandant)
                     int idx = renvoi - 1;

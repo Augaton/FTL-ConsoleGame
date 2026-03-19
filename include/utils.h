@@ -37,6 +37,7 @@ void finaliserEvenement(Vaisseau *joueur);
 int lireEntierSecurise(int min, int max);
 int lireChoix(int max);
 int lireChoixIntervalle(int min, int max, int valeurInitiale);
+int lireMenuInteractif(const char *titre, const char *const options[], int nbOptions, int valeurInitiale, int autoriserRetourZero);
 
 // ============================================================
 // CONSTANTES DE JEU

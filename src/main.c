@@ -38,11 +38,15 @@ int main() {
     if (chargerPartie(&joueur)) {
         printf(COLOR_GREEN "\n[INFO] Sauvegarde trouvée (Secteur %d - %s).\n" COLOR_RESET, 
                joueur.distanceParcourue, joueur.nom);
-        printf(COLOR_BLUE "1. Continuer la mission\n");
-        printf("2. Nouvelle partie (Écrase la sauvegarde)" COLOR_RESET);
-        printf(COLOR_YELLOW "\n> " COLOR_RESET);
-
-        choixMenu = lireChoix(2);
+        const char *optionsDemarrage[] = {
+            "Continuer la mission",
+            "Nouvelle partie (ecrase la sauvegarde)"
+        };
+        choixMenu = lireMenuInteractif(COLOR_BLUE "\nChoix de demarrage" COLOR_RESET,
+                                       optionsDemarrage,
+                                       2,
+                                       1,
+                                       0);
 
         if (choixMenu == 1) {
             chargementReussi = 1;

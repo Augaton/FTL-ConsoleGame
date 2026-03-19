@@ -397,6 +397,81 @@ int lireChoix(int max) {
     return lireChoixIntervalle(1, max, 1);
 }
 
+int lireMenuInteractif(const char *titre, const char *const options[], int nbOptions, int valeurInitiale, int autoriserRetourZero) {
+    if (nbOptions <= 0 || options == NULL) return 0;
+
+    int min = autoriserRetourZero ? 0 : 1;
+    int max = nbOptions;
+    int choixActuel = clamp(valeurInitiale, min, max);
+    char saisie[16] = {0};
+    int tailleSaisie = 0;
+    int lignes = nbOptions + (autoriserRetourZero ? 1 : 0);
+
+    if (titre != NULL && titre[0] != '\0') {
+        printf("%s\n", titre);
+    }
+    printf(COLOR_CYAN "[Fleches Haut/Bas, Entree pour valider]" COLOR_RESET "\n");
+
+    for (int i = 0; i < lignes; i++) {
+        printf("\n");
+    }
+
+    while (1) {
+        printf("\x1b[%dA", lignes);
+
+        for (int i = 0; i < lignes; i++) {
+            int valeur = autoriserRetourZero ? i : i + 1;
+            const char *label = (autoriserRetourZero && i == 0)
+                ? "Annuler / Retour"
+                : options[valeur - 1];
+
+            printf("\r\x1b[2K");
+            if (valeur == choixActuel) {
+                printf(COLOR_YELLOW " > [%d] %s" COLOR_RESET "\n", valeur, label);
+            } else {
+                printf("   [%d] %s\n", valeur, label);
+            }
+        }
+        fflush(stdout);
+
+        int key = lireToucheNavigation();
+        if (key == KEY_UP) {
+            choixActuel--;
+            if (choixActuel < min) choixActuel = max;
+        } else if (key == KEY_DOWN) {
+            choixActuel++;
+            if (choixActuel > max) choixActuel = min;
+        } else if (key == KEY_BACKSPACE) {
+            if (tailleSaisie > 0) {
+                tailleSaisie--;
+                saisie[tailleSaisie] = '\0';
+                if (tailleSaisie > 0) {
+                    int v = atoi(saisie);
+                    choixActuel = clamp(v, min, max);
+                }
+            }
+        } else if (key == KEY_ENTER) {
+            if (tailleSaisie > 0) {
+                int v = atoi(saisie);
+                if (v >= min && v <= max) {
+                    choixActuel = v;
+                }
+            }
+            printf("\n");
+            return choixActuel;
+        } else if (key >= '0' && key <= '9') {
+            if (tailleSaisie < (int)sizeof(saisie) - 1) {
+                saisie[tailleSaisie++] = (char)key;
+                saisie[tailleSaisie] = '\0';
+                int v = atoi(saisie);
+                if (v >= min && v <= max) {
+                    choixActuel = v;
+                }
+            }
+        }
+    }
+}
+
 // Petite fonction utilitaire pour l'affichage coloré
 void afficherDestinationColoree(const char* destination) {
     if (strstr(destination, "Hostile")) printf(COLOR_RED);

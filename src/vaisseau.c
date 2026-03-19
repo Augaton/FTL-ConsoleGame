@@ -90,15 +90,17 @@ void initialiserNouvellePartie(Vaisseau *joueur) {
     joueur->equipage[2].niveau = 0;
 
     // --- 4. CHOIX DE LA DURÉE ---
-    printf("\n" COLOR_CYAN "--- PARAMÈTRES DE MISSION ---" COLOR_RESET "\n");
-    printf("1. Raid rapide (10 secteurs)\n");
-    printf("2. Mission standard (20 secteurs)\n");
-    printf("3. Longue expédition (40 secteurs)\n");
-    printf("4. Personnalisé\n");
-    printf(COLOR_YELLOW "> " COLOR_RESET);
-    
-    // Utilisation de la fonction sécurisée (Choix entre 1 et 4)
-    int mode = lireEntierSecurise(1, 4);
+    const char *optionsMission[] = {
+        "Raid rapide (10 secteurs)",
+        "Mission standard (20 secteurs)",
+        "Longue expedition (40 secteurs)",
+        "Personnalise"
+    };
+    int mode = lireMenuInteractif(COLOR_CYAN "\n--- PARAMETRES DE MISSION ---" COLOR_RESET,
+                                  optionsMission,
+                                  4,
+                                  2,
+                                  0);
     
     if (mode == 1) joueur->distanceObjectif = 10;
     else if (mode == 2) joueur->distanceObjectif = 20;
@@ -111,21 +113,27 @@ void initialiserNouvellePartie(Vaisseau *joueur) {
     }
 
     // --- 5. CHOIX DE DIFFICULTE ---
-    printf("\n" COLOR_CYAN "--- NIVEAU DE DIFFICULTE ---" COLOR_RESET "\n");
-    printf("1. Facile     (ennemis moins agressifs, stats reduites)\n");
-    printf("2. Normal     (experience standard)\n");
-    printf("3. Difficile  (IA plus intelligente, ennemis renforces)\n");
-    printf(COLOR_YELLOW "> " COLOR_RESET);
-    joueur->difficulte = lireChoix(3);
+    const char *optionsDifficulte[] = {
+        "Facile (ennemis moins agressifs, stats reduites)",
+        "Normal (experience standard)",
+        "Difficile (IA plus intelligente, ennemis renforces)"
+    };
+    joueur->difficulte = lireMenuInteractif(COLOR_CYAN "\n--- NIVEAU DE DIFFICULTE ---" COLOR_RESET,
+                                            optionsDifficulte,
+                                            3,
+                                            2,
+                                            0);
 
     // --- 6. GESTION DE LA SEED ---
-    printf("\n" COLOR_CYAN "--- MATRICE DE GÉNÉRATION (SEED) ---" COLOR_RESET "\n");
-    printf("1. Aléatoire (Recommandé)\n");
-    printf("2. Saisir une Seed manuelle\n");
-    printf(COLOR_YELLOW "> " COLOR_RESET);
-    
-    // Utilisation de la fonction sécurisée (Choix entre 1 et 2)
-    int seedMode = lireEntierSecurise(1, 2);
+    const char *optionsSeed[] = {
+        "Aleatoire (recommande)",
+        "Saisir une seed manuelle"
+    };
+    int seedMode = lireMenuInteractif(COLOR_CYAN "\n--- MATRICE DE GENERATION (SEED) ---" COLOR_RESET,
+                                      optionsSeed,
+                                      2,
+                                      1,
+                                      0);
     
     if (seedMode == 2) {
         printf("Entrez la seed numérique (Max 9 chiffres) : ");
@@ -210,14 +218,18 @@ void menuEtatVaisseau(Vaisseau *joueur) {
         printf(COLOR_CYAN "+----------------------------------------------------------+\n" COLOR_RESET);
 
         // --- 4. MENU ACTIONS ---
-        printf(COLOR_BOLD " COMMANDES DISPONIBLES :" COLOR_RESET "\n");
-        printf(" [1-3] Gérer un membre (Changer de poste)\n");
-        printf(" [4]   " COLOR_GREEN "INFIRMERIE" COLOR_RESET " (Soigner l'équipage | -1 Fuel)\n");
-        printf(" [5]   " COLOR_YELLOW "ATELIER" COLOR_RESET "    (Réparer +1 Coque | -2 Ferraille)\n");
-        printf(" [0]   " COLOR_WHITE "RETOUR" COLOR_RESET "\n");
-        printf(COLOR_YELLOW "\n > " COLOR_RESET);
-
-        int choix = lireChoixIntervalle(0, 5, 1);
+        const char *optionsEtat[] = {
+            "Gerer membre 1 (changer de poste)",
+            "Gerer membre 2 (changer de poste)",
+            "Gerer membre 3 (changer de poste)",
+            "Infirmerie (soigner equipage | -1 carburant)",
+            "Atelier (reparer +1 coque | -2 ferraille)"
+        };
+        int choix = lireMenuInteractif(COLOR_BOLD "\nCOMMANDES DISPONIBLES" COLOR_RESET,
+                                       optionsEtat,
+                                       5,
+                                       1,
+                                       1);
 
         // --- LOGIQUE DES ACTIONS ---
 
@@ -225,14 +237,18 @@ void menuEtatVaisseau(Vaisseau *joueur) {
         if (choix >= 1 && choix <= 3) {
             Membre *m = &joueur->equipage[choix-1];
             if (m->estVivant) {
-                printf("\n" COLOR_BOLD ">>> RÉAFFECTATION : %s" COLOR_RESET "\n", m->nom);
-                printf("Poste actuel : %s\n", getRoleNom(m->role));
-                printf("1. Pilote    (+Esquive)\n");
-                printf("2. Ingénieur (+Recharge Bouclier)\n");
-                printf("3. Soldat    (+Dégâts Armes)\n");
-                printf("0. Annuler\n> ");
-                
-                int r = lireChoixIntervalle(0, 3, 1);
+                char titreAffectation[96];
+                snprintf(titreAffectation, sizeof(titreAffectation),
+                         COLOR_BOLD "\n>>> REAFFECTATION : %s" COLOR_RESET "\nPoste actuel : %s",
+                         m->nom,
+                         getRoleNom(m->role));
+                const char *optionsRoles[] = {
+                    "Pilote (+esquive)",
+                    "Ingenieur (+recharge bouclier)",
+                    "Soldat (+degats armes)"
+                };
+
+                int r = lireMenuInteractif(titreAffectation, optionsRoles, 3, 1, 1);
                 if (r == 1) m->role = ROLE_PILOTE;
                 if (r == 2) m->role = ROLE_INGENIEUR;
                 if (r == 3) m->role = ROLE_SOLDAT;
