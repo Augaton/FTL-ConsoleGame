@@ -14,6 +14,10 @@ const char* getRoleNom(TypeRole role) {
     }
 }
 
+static void imprimerLigneEtat(const char *texte) {
+    printf("| %-56.56s |\n", texte);
+}
+
 void initialiserNouvellePartie(Vaisseau *joueur) {
     // --- 1. STATS DE BASE ---
     joueur->coque = 30;
@@ -160,59 +164,67 @@ void menuEtatVaisseau(Vaisseau *joueur) {
     while (!retour) {
         effacerEcran();
 
-        // --- 1. EN-TÊTE & RESSOURCES ---
+        // --- 1. EN-TETE & RESSOURCES ---
+        char ligne[128];
         printf(COLOR_CYAN "+----------------------------------------------------------+\n" COLOR_RESET);
-        printf("| " COLOR_BOLD "LOGS TECHNIQUES" COLOR_RESET " : %-38.38s |\n", joueur->nom);
+        snprintf(ligne, sizeof(ligne), "LOGS TECHNIQUES : %-38.38s", joueur->nom);
+        imprimerLigneEtat(ligne);
         printf(COLOR_CYAN "+----------------------------------------------------------+\n" COLOR_RESET);
-        printf("| " COLOR_YELLOW "CARBURANT: %-3d  " COLOR_YELLOW "FERRAILLE: %-4d  " COLOR_YELLOW "MISSILES: %-3d " COLOR_RESET " |\n", 
-                joueur->carburant, joueur->ferraille, joueur->missiles);
+        snprintf(ligne, sizeof(ligne), "CARBURANT:%-3d  FERRAILLE:%-4d  MISSILES:%-3d",
+                 joueur->carburant, joueur->ferraille, joueur->missiles);
+        imprimerLigneEtat(ligne);
         printf(COLOR_CYAN "+----------------------------------------------------------+\n" COLOR_RESET);
 
         // --- 2. SYSTÈMES (Calcul dynamique des bonus) ---
-        printf("| " COLOR_BOLD "DIAGNOSTIC SYSTEMES" COLOR_RESET "                                      |\n");
+        imprimerLigneEtat("DIAGNOSTIC SYSTEMES");
 
         // -- OFFENSIF --
         int bonusDegats = getBonusDegats(joueur);
-         printf("|  " COLOR_RED "ARMEMENT :" COLOR_RESET " %-21s " COLOR_RED "(Puissance: %-2d) ", 
-               joueur->systemeArme.nom, joueur->systemeArme.efficacite);
-        if (bonusDegats > 0) printf(COLOR_GREEN " +%d(Soldat)", bonusDegats);
-         printf("      |\n");
+        if (bonusDegats > 0) {
+            snprintf(ligne, sizeof(ligne), " ARMEMENT : %-20.20s (Puissance: %-2d) +%d Soldat",
+                     joueur->systemeArme.nom, joueur->systemeArme.efficacite, bonusDegats);
+        } else {
+            snprintf(ligne, sizeof(ligne), " ARMEMENT : %-20.20s (Puissance: %-2d)",
+                     joueur->systemeArme.nom, joueur->systemeArme.efficacite);
+        }
+        imprimerLigneEtat(ligne);
 
-        // -- DÉFENSIF --
-        printf("|  " COLOR_BLUE "BOUCLIER :" COLOR_RESET " %-21s " COLOR_BLUE "(Charge: %-2d/%-2d)" COLOR_RESET "       |\n", 
-               joueur->systemeBouclier.nom, joueur->bouclierActuel, joueur->systemeBouclier.efficacite);
+        // -- DEFENSIF --
+        snprintf(ligne, sizeof(ligne), " BOUCLIER : %-20.20s (Charge: %d/%d)",
+                 joueur->systemeBouclier.nom, joueur->bouclierActuel, joueur->systemeBouclier.efficacite);
+        imprimerLigneEtat(ligne);
 
         // -- MOTEURS --
         int bonusPilote = getBonusEsquive(joueur);
         int esquiveTotale = (joueur->moteurs * 5) + bonusPilote;
-        
-         printf("|  " COLOR_GREEN "MOTEURS  :" COLOR_RESET " Niveau %-2d      " COLOR_GREEN "Esquive: %d%%", 
-               joueur->moteurs, esquiveTotale);
-        if (bonusPilote > 0) printf("(+%d Pilote)", bonusPilote);
-        else printf("           ");
-         printf("   |\n");
+
+        if (bonusPilote > 0) {
+            snprintf(ligne, sizeof(ligne), " MOTEURS  : Niveau %-2d  Esquive:%2d%% (+%d Pilote)",
+                     joueur->moteurs, esquiveTotale, bonusPilote);
+        } else {
+            snprintf(ligne, sizeof(ligne), " MOTEURS  : Niveau %-2d  Esquive:%2d%%",
+                     joueur->moteurs, esquiveTotale);
+        }
+        imprimerLigneEtat(ligne);
 
          printf(COLOR_CYAN "+----------------------------------------------------------+\n" COLOR_RESET);
 
         // --- 3. ÉQUIPAGE ---
-        printf("| " COLOR_BOLD "RAPPORT D'EQUIPAGE" COLOR_RESET "                                       |\n");
+        imprimerLigneEtat("RAPPORT D'EQUIPAGE");
         
         for(int i=0; i<3; i++) {
             Membre *m = &joueur->equipage[i];
             if (m->estVivant) {
-                // Gestion visuelle XP (Étoiles)
-                char stars[16] = "";
-                if(m->niveau == 1) strcpy(stars, COLOR_YELLOW "★" COLOR_RESET);
-                if(m->niveau >= 2) strcpy(stars, COLOR_YELLOW "★★" COLOR_RESET);
+                const char *xpLabel = "Rookie";
+                if (m->niveau == 1) xpLabel = "Veteran";
+                if (m->niveau >= 2) xpLabel = "Elite";
 
-                // Couleur Santé
-                char *colPv = (m->pv > 50) ? COLOR_GREEN : (m->pv > 25 ? COLOR_YELLOW : COLOR_RED);
-
-                // Format: 1. [ROLE] Nom ...
-                printf("| %d. " COLOR_BOLD "%-16s" COLOR_RESET " [%-9s]  Vie:%s%3d%%" COLOR_RESET "  XP:%-8s   |\n", 
-                    i+1, m->nom, getRoleNom(m->role), colPv, m->pv, stars);
+                snprintf(ligne, sizeof(ligne), " %d. %-16.16s [%-9.9s]  Vie:%3d%%  XP:%-8.8s",
+                         i+1, m->nom, getRoleNom(m->role), m->pv, xpLabel);
+                imprimerLigneEtat(ligne);
             } else {
-                printf("| %d. " COLOR_BLACK "--- POSTE VACANT ---" COLOR_RESET "                                  |\n", i+1);
+                snprintf(ligne, sizeof(ligne), " %d. --- POSTE VACANT ---", i+1);
+                imprimerLigneEtat(ligne);
             }
         }
         printf(COLOR_CYAN "+----------------------------------------------------------+\n" COLOR_RESET);

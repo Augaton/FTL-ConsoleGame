@@ -67,6 +67,12 @@ static void imprimerLigneBox(const char *content) {
     printf("| %-76.76s |\n", content);
 }
 
+static void imprimerLigneCombatColonnes(const char *gauche, const char *droite) {
+    char ligne[128];
+    snprintf(ligne, sizeof(ligne), " %-36.36s | %-36.36s", gauche, droite);
+    imprimerLigneBox(ligne);
+}
+
 static void appliquerScalingDifficulteEnnemi(Vaisseau *joueur, Vaisseau *ennemi, int estBossFinal) {
     int d = normaliserDifficulte(joueur->difficulte);
 
@@ -99,10 +105,14 @@ void afficherEtatCombat(Vaisseau *joueur, Vaisseau *ennemi) {
     if (bouclierMaxJoueur < 0) bouclierMaxJoueur = 0;
 
     char coqueJBar[20], coqueEBar[20], shieldJBar[20], shieldEBar[20], ligne[160];
+    char gauche[64], droite[64];
+    char armeJ[32], armeE[32];
     construireBarre(coqueJBar, sizeof(coqueJBar), joueur->coque, joueur->coqueMax, 12, '#', '-');
     construireBarre(coqueEBar, sizeof(coqueEBar), ennemi->coque, ennemi->coqueMax, 12, '#', '-');
     construireBarre(shieldJBar, sizeof(shieldJBar), joueur->bouclierActuel, bouclierMaxJoueur, 10, '+', '.');
     construireBarre(shieldEBar, sizeof(shieldEBar), ennemi->bouclierActuel, ennemi->systemeBouclier.efficacite, 10, '+', '.');
+    tronquerTexte(armeJ, sizeof(armeJ), joueur->systemeArme.nom, 30);
+    tronquerTexte(armeE, sizeof(armeE), ennemi->systemeArme.nom, 30);
 
     char ftlBar[16] = {0};
     int p = 0;
@@ -118,22 +128,25 @@ void afficherEtatCombat(Vaisseau *joueur, Vaisseau *ennemi) {
     imprimerLigneBox(ligne);
     printf(COLOR_CYAN "+------------------------------------------------------------------------------+\n" COLOR_RESET);
 
-    snprintf(ligne, sizeof(ligne), "ALLIE: %-28.28s | HOSTILE: %-28.28s", playerName, ennemiName);
-    imprimerLigneBox(ligne);
+    snprintf(gauche, sizeof(gauche), "ALLIE: %-28.28s", playerName);
+    snprintf(droite, sizeof(droite), "HOSTILE: %-28.28s", ennemiName);
+    imprimerLigneCombatColonnes(gauche, droite);
 
-    snprintf(ligne, sizeof(ligne), "Coque    %-14s %2d/%-2d %-9s | Coque    %-14s %2d/%-2d %-9s",
-             coqueJBar, joueur->coque, joueur->coqueMax, etatCoqueTexte(joueur->coque, joueur->coqueMax),
+    snprintf(gauche, sizeof(gauche), "Coque    %-14s %2d/%-2d %-9s",
+             coqueJBar, joueur->coque, joueur->coqueMax, etatCoqueTexte(joueur->coque, joueur->coqueMax));
+    snprintf(droite, sizeof(droite), "Coque    %-14s %2d/%-2d %-9s",
              coqueEBar, ennemi->coque, ennemi->coqueMax, etatCoqueTexte(ennemi->coque, ennemi->coqueMax));
-    imprimerLigneBox(ligne);
+    imprimerLigneCombatColonnes(gauche, droite);
 
-    snprintf(ligne, sizeof(ligne), "Bouclier %-14s %2d/%-2d            | Bouclier %-14s %2d/%-2d",
-             shieldJBar, joueur->bouclierActuel, bouclierMaxJoueur,
+    snprintf(gauche, sizeof(gauche), "Bouclier %-14s %2d/%-2d",
+             shieldJBar, joueur->bouclierActuel, bouclierMaxJoueur);
+    snprintf(droite, sizeof(droite), "Bouclier %-14s %2d/%-2d",
              shieldEBar, ennemi->bouclierActuel, ennemi->systemeBouclier.efficacite);
-    imprimerLigneBox(ligne);
+    imprimerLigneCombatColonnes(gauche, droite);
 
-    snprintf(ligne, sizeof(ligne), "Arme %-34.34s | Arme %-30.30s",
-             joueur->systemeArme.nom, ennemi->systemeArme.nom);
-    imprimerLigneBox(ligne);
+    snprintf(gauche, sizeof(gauche), "Arme %-31.31s", armeJ);
+    snprintf(droite, sizeof(droite), "Arme %-31.31s", armeE);
+    imprimerLigneCombatColonnes(gauche, droite);
 
     snprintf(ligne, sizeof(ligne), "FTL ennemi: %-8s", ftlBar);
     imprimerLigneBox(ligne);
@@ -241,15 +254,17 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
         if (joueur->debuffMoteur > 0) printf(COLOR_YELLOW "[INFO] Vos moteurs sont instables (esquive reduite)\n" COLOR_RESET);
 
         // --- MENU ACTIONS ---
-        printf(COLOR_CYAN "\n╔══════════════════ VOTRE TOUR ══════════════════╗\n" COLOR_RESET);
-        printf("  " COLOR_YELLOW "1." COLOR_RESET " ATTAQUER        -> Tirer sur coque/systems\n");
-        printf("  " COLOR_BLUE "2." COLOR_RESET " RECHARGER SHIELD -> Stabiliser la defense\n");
-        printf("  " COLOR_MAGENTA "3." COLOR_RESET " TENTER LA FUITE -> Charger le FTL\n");
-        printf("  " COLOR_GREEN "4." COLOR_RESET " ANALYSER        -> Scanner tactique detaille\n");
-        printf(COLOR_CYAN "╚═════════════════════════════════════════════════╝\n" COLOR_RESET);
-        printf(COLOR_YELLOW "Commande > " COLOR_RESET);
-        
-        choixAction = lireChoix(4);
+        const char *optionsAction[] = {
+            "ATTAQUER -> Tirer sur coque/systemes",
+            "RECHARGER SHIELD -> Stabiliser la defense",
+            "TENTER LA FUITE -> Charger le FTL",
+            "ANALYSER -> Scanner tactique detaille"
+        };
+        choixAction = lireMenuInteractif(COLOR_CYAN "\nVOTRE TOUR" COLOR_RESET,
+                                         optionsAction,
+                                         4,
+                                         1,
+                                         0);
 
         // --- 1. ATTAQUER ---
         if (choixAction == 1) {
@@ -269,24 +284,30 @@ void tourCombat(Vaisseau *joueur, Vaisseau *ennemi) {
             if (chanceSysteme > 100) chanceSysteme = 100;
 
             // Menu Cible
-            printf(COLOR_BLUE "\n╔══════════════ CIBLAGE DES ARMES ══════════════╗\n" COLOR_RESET);
-            printf("  1. Coque centrale  [" COLOR_GREEN "%3d%%" COLOR_RESET "] Degats directs\n", chanceCoque);
-            printf("  2. Systeme armes   [" COLOR_YELLOW "%3d%%" COLOR_RESET "] Debuff puissance ennemie\n", chanceSysteme);
-            printf("  3. Systeme moteurs [" COLOR_YELLOW "%3d%%" COLOR_RESET "] Debuff esquive ennemie\n", chanceSysteme);
-            printf("  0. Retour\n");
-            printf(COLOR_BLUE "╚════════════════════════════════════════════════╝\n" COLOR_RESET);
-            printf(COLOR_YELLOW "Cible > " COLOR_RESET);
-            choixCible = lireChoixIntervalle(0, 3, 1);
+            char cible1[96], cible2[96], cible3[96];
+            snprintf(cible1, sizeof(cible1), "Coque centrale [%d%%] Degats directs", chanceCoque);
+            snprintf(cible2, sizeof(cible2), "Systeme armes [%d%%] Debuff puissance ennemie", chanceSysteme);
+            snprintf(cible3, sizeof(cible3), "Systeme moteurs [%d%%] Debuff esquive ennemie", chanceSysteme);
+            const char *optionsCible[] = { cible1, cible2, cible3 };
+            choixCible = lireMenuInteractif(COLOR_BLUE "\nCIBLAGE DES ARMES" COLOR_RESET,
+                                            optionsCible,
+                                            3,
+                                            1,
+                                            1);
             if (choixCible == 0) continue; 
 
             // Menu Arme
-            printf(COLOR_BLUE "\n╔══════════════ SELECTION D'ARME ═══════════════╗\n" COLOR_RESET);
-            printf("  1. Canon Laser  (attaque standard)\n");
-            printf("  2. Missile      (stock actuel: %d)\n", joueur->missiles);
-            printf("  0. Retour\n");
-            printf(COLOR_BLUE "╚════════════════════════════════════════════════╝\n" COLOR_RESET);
-            printf(COLOR_YELLOW "Arme > " COLOR_RESET);
-            choixArme = lireChoixIntervalle(0, 2, 1);
+            char arme2[96];
+            snprintf(arme2, sizeof(arme2), "Missile (stock actuel: %d)", joueur->missiles);
+            const char *optionsArme[] = {
+                "Canon Laser (attaque standard)",
+                arme2
+            };
+            choixArme = lireMenuInteractif(COLOR_BLUE "\nSELECTION D'ARME" COLOR_RESET,
+                                           optionsArme,
+                                           2,
+                                           1,
+                                           1);
             if (choixArme == 0) continue; 
 
             // EXECUTION TIR
