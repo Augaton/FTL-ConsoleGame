@@ -208,6 +208,8 @@ int chargerPartie(Vaisseau *v) {
 
     // --- Lecture ligne par ligne ---
     v->difficulte = DIFFICULTE_NORMALE;
+    v->debuffArme = 0;
+    v->debuffMoteur = 0;
 
     char clef[64];
     char valeur[256];

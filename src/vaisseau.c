@@ -35,6 +35,8 @@ void initialiserNouvellePartie(Vaisseau *joueur) {
     joueur->ennemiCoqueActuelle = 0;
     joueur->chargeFTL = 0;
     joueur->maxchargeFTL = 3;
+    joueur->debuffArme = 0;
+    joueur->debuffMoteur = 0;
 
     // Equipement Base
     strcpy(joueur->systemeArme.nom, "Laser Burst Mk1");

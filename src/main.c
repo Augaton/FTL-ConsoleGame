@@ -24,7 +24,7 @@ unsigned int genererSeedDepuisTexte(const char *str) {
 // --- MAIN ---
 int main() {
     srand(time(NULL));
-    Vaisseau joueur;
+    Vaisseau joueur = {0};
     int choixMenu;
 
     printf(COLOR_CYAN "╔════════════════════════════════════════╗\n");
