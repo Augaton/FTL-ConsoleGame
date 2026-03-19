@@ -72,16 +72,16 @@ void ouvrirMagasin(Vaisseau *joueur) {
             fatigueIngenieur = nombreAchats - SEUIL_AVANT_INFLATION + 1;
         }
         
-        printf(COLOR_GREEN "╔══════════════════════════════════════════════════════════╗\n");
-        printf("║ " COLOR_BOLD "🛒 DOCK COMMERCIAL" COLOR_RESET COLOR_GREEN "          CRÉDITS: " COLOR_YELLOW "%-7d ⚓" COLOR_GREEN "          ║\n", joueur->ferraille);
-        printf("╠══════════════════════════════════════════════════════════╣" COLOR_RESET "\n");
+        printf(COLOR_GREEN "+----------------------------------------------------------+\n" COLOR_RESET);
+        printf("| " COLOR_BOLD "DOCK COMMERCIAL" COLOR_RESET "               CREDITS: " COLOR_YELLOW "%-7d" COLOR_RESET "      |\n", joueur->ferraille);
+        printf(COLOR_GREEN "+----------------------------------------------------------+\n" COLOR_RESET);
 
         if (fatigueIngenieur > 0) {
-            printf("║ " COLOR_RED "⚠ TARIFS MAJORÉS : Demande élevée (+%-2d fer/article)" COLOR_GREEN "      ║\n", fatigueIngenieur * 10);
+            printf("| " COLOR_RED "TARIFS MAJORES : demande elevee (+%-2d fer/article)" COLOR_RESET "      |\n", fatigueIngenieur * 10);
         } else {
             int reste = SEUIL_AVANT_INFLATION - nombreAchats;
-            if (reste > 0) printf("║ " COLOR_CYAN "ℹ OFFRE : Encore %-2d achat(s) à prix coûtant !" COLOR_GREEN "            ║\n", reste);
-            else printf("║ " COLOR_YELLOW "⚠ ATTENTION : Prochain achat déclenche l'inflation." COLOR_GREEN "     ║\n");
+            if (reste > 0) printf("| " COLOR_CYAN "OFFRE : encore %-2d achat(s) a prix coutant" COLOR_RESET "                 |\n", reste);
+            else printf("| " COLOR_YELLOW "ATTENTION : le prochain achat declenche l'inflation" COLOR_RESET "        |\n");
         }
         
         // Affichage Promo
@@ -92,15 +92,15 @@ void ouvrirMagasin(Vaisseau *joueur) {
         else if (idPromo == 4) strcpy(nomPromo, "COQUE");
         else strcpy(nomPromo, "VISÉE");
 
-        printf("║ " COLOR_MAGENTA "★ PROMO FLASH : -%d%% sur : %-20s" COLOR_GREEN "           ║\n", pourcentPromo, nomPromo);
+        printf("| " COLOR_MAGENTA "PROMO FLASH : -%d%% sur %-20s" COLOR_RESET "                    |\n", pourcentPromo, nomPromo);
         
-        printf("╠══════════════════════════════════════════════════════════╣" COLOR_RESET "\n");
-        printf(COLOR_GREEN "║ " COLOR_CYAN "1. [MAINTENANCE]" COLOR_RESET "  Réparations & Munitions                " COLOR_GREEN "║\n");
-        printf(COLOR_GREEN "║ " COLOR_RED "2. [UPGRADES]   " COLOR_RESET "  Systèmes du Vaisseau                   " COLOR_GREEN "║\n");
-        printf(COLOR_GREEN "║ " COLOR_YELLOW "3. [SERVICES]   " COLOR_RESET "  Marché noir & Recyclage                " COLOR_GREEN "║\n");
-        printf(COLOR_GREEN "║ " COLOR_MAGENTA "4. [PERSONNEL]  " COLOR_RESET "  Recrutement & Gestion RH               " COLOR_GREEN "║\n");
-        printf(COLOR_GREEN "║ " COLOR_RESET "5. [QUITTER]    " COLOR_RESET "  Reprendre la navigation                " COLOR_GREEN "║\n");
-        printf(COLOR_GREEN "╚══════════════════════════════════════════════════════════╝" COLOR_RESET "\n");
+        printf(COLOR_GREEN "+----------------------------------------------------------+\n" COLOR_RESET);
+        printf("| " COLOR_CYAN "1. [MAINTENANCE]" COLOR_RESET "  Reparations & Munitions                 |\n");
+        printf("| " COLOR_RED "2. [UPGRADES]   " COLOR_RESET "  Systemes du Vaisseau                    |\n");
+        printf("| " COLOR_YELLOW "3. [SERVICES]   " COLOR_RESET "  Marche noir & Recyclage                 |\n");
+        printf("| " COLOR_MAGENTA "4. [PERSONNEL]  " COLOR_RESET "  Recrutement & Gestion RH                |\n");
+        printf("| 5. [QUITTER]      Reprendre la navigation               |\n");
+        printf(COLOR_GREEN "+----------------------------------------------------------+\n" COLOR_RESET);
         
         printf("\n " COLOR_YELLOW "Choisir catégorie > " COLOR_RESET);
         categorie = lireChoix(5);

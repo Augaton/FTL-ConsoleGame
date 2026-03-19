@@ -164,6 +164,7 @@ void sauvegarderPartie(Vaisseau *v) {
     fprintf(f, "ennemiCoqueActuelle %d\n", v->ennemiCoqueActuelle);
     fprintf(f, "chargeFTL %d\n",           v->chargeFTL);
     fprintf(f, "maxchargeFTL %d\n",        v->maxchargeFTL);
+    fprintf(f, "difficulte %d\n",         v->difficulte);
 
     // --- COMPOSANTS (nom rang efficacite) ---
     fprintf(f, "ARME %s|%d|%d\n",
@@ -206,6 +207,8 @@ int chargerPartie(Vaisseau *v) {
     }
 
     // --- Lecture ligne par ligne ---
+    v->difficulte = DIFFICULTE_NORMALE;
+
     char clef[64];
     char valeur[256];
 
@@ -258,6 +261,8 @@ int chargerPartie(Vaisseau *v) {
             { fscanf(f, "%d", &v->chargeFTL); }
         else if (strcmp(clef, "maxchargeFTL") == 0)
             { fscanf(f, "%d", &v->maxchargeFTL); }
+        else if (strcmp(clef, "difficulte") == 0)
+            { fscanf(f, "%d", &v->difficulte); }
 
         // Composants (format: NOM|rang|efficacite)
         else if (strcmp(clef, "ARME") == 0) {

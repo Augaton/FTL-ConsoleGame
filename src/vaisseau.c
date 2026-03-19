@@ -110,7 +110,15 @@ void initialiserNouvellePartie(Vaisseau *joueur) {
         joueur->distanceObjectif = lireEntierSecurise(5, 100);
     }
 
-    // --- 5. GESTION DE LA SEED ---
+    // --- 5. CHOIX DE DIFFICULTE ---
+    printf("\n" COLOR_CYAN "--- NIVEAU DE DIFFICULTE ---" COLOR_RESET "\n");
+    printf("1. Facile     (ennemis moins agressifs, stats reduites)\n");
+    printf("2. Normal     (experience standard)\n");
+    printf("3. Difficile  (IA plus intelligente, ennemis renforces)\n");
+    printf(COLOR_YELLOW "> " COLOR_RESET);
+    joueur->difficulte = lireChoix(3);
+
+    // --- 6. GESTION DE LA SEED ---
     printf("\n" COLOR_CYAN "--- MATRICE DE GÉNÉRATION (SEED) ---" COLOR_RESET "\n");
     printf("1. Aléatoire (Recommandé)\n");
     printf("2. Saisir une Seed manuelle\n");
@@ -145,41 +153,41 @@ void menuEtatVaisseau(Vaisseau *joueur) {
         effacerEcran();
 
         // --- 1. EN-TÊTE & RESSOURCES ---
-        printf(COLOR_CYAN "╔══════════════════════════════════════════════════════════╗\n");
-        printf("║ " COLOR_BOLD "📊 LOGS TECHNIQUES" COLOR_RESET COLOR_CYAN " : %-35s ║\n", joueur->nom);
-        printf("╠══════════════════════════════════════════════════════════╣\n");
-        printf("║ " COLOR_YELLOW "⚡ CARBURANT: %-3d  " COLOR_YELLOW "⚓ FERRAILLE: %-4d  " COLOR_YELLOW "🚀 MISSILES: %-3d " COLOR_CYAN " ║\n", 
+        printf(COLOR_CYAN "+----------------------------------------------------------+\n" COLOR_RESET);
+        printf("| " COLOR_BOLD "LOGS TECHNIQUES" COLOR_RESET " : %-38.38s |\n", joueur->nom);
+        printf(COLOR_CYAN "+----------------------------------------------------------+\n" COLOR_RESET);
+        printf("| " COLOR_YELLOW "CARBURANT: %-3d  " COLOR_YELLOW "FERRAILLE: %-4d  " COLOR_YELLOW "MISSILES: %-3d " COLOR_RESET " |\n", 
                 joueur->carburant, joueur->ferraille, joueur->missiles);
-        printf("╠══════════════════════════════════════════════════════════╣\n" COLOR_RESET);
+        printf(COLOR_CYAN "+----------------------------------------------------------+\n" COLOR_RESET);
 
         // --- 2. SYSTÈMES (Calcul dynamique des bonus) ---
-        printf(COLOR_CYAN "║ " COLOR_BOLD "DIAGNOSTIC SYSTÈMES" COLOR_RESET COLOR_CYAN "                                      ║\n" COLOR_RESET);
+        printf("| " COLOR_BOLD "DIAGNOSTIC SYSTEMES" COLOR_RESET "                                      |\n");
 
         // -- OFFENSIF --
         int bonusDegats = getBonusDegats(joueur);
-        printf("║  " COLOR_RED "✇ ARMEMENT :" COLOR_RESET " %-20s " COLOR_RED "(Puissance: %-2d) ", 
+         printf("|  " COLOR_RED "ARMEMENT :" COLOR_RESET " %-21s " COLOR_RED "(Puissance: %-2d) ", 
                joueur->systemeArme.nom, joueur->systemeArme.efficacite);
         if (bonusDegats > 0) printf(COLOR_GREEN " +%d(Soldat)", bonusDegats);
-        printf(COLOR_CYAN "      ║\n" COLOR_RESET);
+         printf("      |\n");
 
         // -- DÉFENSIF --
-        printf("║  " COLOR_BLUE "🛡 BOUCLIER :" COLOR_RESET " %-20s " COLOR_BLUE "(Charge: %-2d/%-2d)" COLOR_RESET "       " COLOR_CYAN "║\n", 
+        printf("|  " COLOR_BLUE "BOUCLIER :" COLOR_RESET " %-21s " COLOR_BLUE "(Charge: %-2d/%-2d)" COLOR_RESET "       |\n", 
                joueur->systemeBouclier.nom, joueur->bouclierActuel, joueur->systemeBouclier.efficacite);
 
         // -- MOTEURS --
         int bonusPilote = getBonusEsquive(joueur);
         int esquiveTotale = (joueur->moteurs * 5) + bonusPilote;
         
-        printf("║  " COLOR_GREEN "💨 MOTEURS  :" COLOR_RESET " Niveau %-2d      " COLOR_GREEN "Esquive: %d%%", 
+         printf("|  " COLOR_GREEN "MOTEURS  :" COLOR_RESET " Niveau %-2d      " COLOR_GREEN "Esquive: %d%%", 
                joueur->moteurs, esquiveTotale);
         if (bonusPilote > 0) printf("(+%d Pilote)", bonusPilote);
         else printf("           ");
-        printf(COLOR_CYAN "   ║\n" COLOR_RESET);
+         printf("   |\n");
 
-        printf(COLOR_CYAN "╠══════════════════════════════════════════════════════════╣\n" COLOR_RESET);
+         printf(COLOR_CYAN "+----------------------------------------------------------+\n" COLOR_RESET);
 
         // --- 3. ÉQUIPAGE ---
-        printf(COLOR_CYAN "║ " COLOR_BOLD "RAPPORT D'ÉQUIPAGE" COLOR_RESET COLOR_CYAN "                                       ║\n" COLOR_RESET);
+        printf("| " COLOR_BOLD "RAPPORT D'EQUIPAGE" COLOR_RESET "                                       |\n");
         
         for(int i=0; i<3; i++) {
             Membre *m = &joueur->equipage[i];
@@ -193,13 +201,13 @@ void menuEtatVaisseau(Vaisseau *joueur) {
                 char *colPv = (m->pv > 50) ? COLOR_GREEN : (m->pv > 25 ? COLOR_YELLOW : COLOR_RED);
 
                 // Format: 1. [ROLE] Nom ...
-                printf(COLOR_CYAN "║ " COLOR_RESET "%d. " COLOR_BOLD "%-16s" COLOR_RESET " [%-9s]  Vie:%s%3d%%" COLOR_RESET "  XP:%-8s   " COLOR_CYAN "║\n", 
+                printf("| %d. " COLOR_BOLD "%-16s" COLOR_RESET " [%-9s]  Vie:%s%3d%%" COLOR_RESET "  XP:%-8s   |\n", 
                     i+1, m->nom, getRoleNom(m->role), colPv, m->pv, stars);
             } else {
-                printf(COLOR_CYAN "║ " COLOR_RESET "%d. " COLOR_BLACK "--- POSTE VACANT ---" COLOR_RESET "                                  " COLOR_CYAN "║\n", i+1);
+                printf("| %d. " COLOR_BLACK "--- POSTE VACANT ---" COLOR_RESET "                                  |\n", i+1);
             }
         }
-        printf(COLOR_CYAN "╚══════════════════════════════════════════════════════════╝\n" COLOR_RESET);
+        printf(COLOR_CYAN "+----------------------------------------------------------+\n" COLOR_RESET);
 
         // --- 4. MENU ACTIONS ---
         printf(COLOR_BOLD " COMMANDES DISPONIBLES :" COLOR_RESET "\n");

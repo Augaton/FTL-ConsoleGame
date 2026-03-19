@@ -66,8 +66,15 @@ typedef struct {
     // Patrouille secteur
     int explorationActuelle; // Combien de fois on a déjà exploré
     int explorationMax;      // Combien de choses il y a à trouver ici
+
+    // 1 = Facile, 2 = Normal, 3 = Difficile
+    int difficulte;
     
 } Vaisseau;
+
+#define DIFFICULTE_FACILE 1
+#define DIFFICULTE_NORMALE 2
+#define DIFFICULTE_DIFFICILE 3
 
 void menuEtatVaisseau(Vaisseau *v);
 void afficherBarreFTL(int charge);
