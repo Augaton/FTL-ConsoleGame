@@ -14,8 +14,9 @@ const char* getRoleNom(TypeRole role) {
     }
 }
 
-static void imprimerLigneEtat(const char *texte) {
-    printf("| %-56.56s |\n", texte);
+static void imprimerLigneEtatCouleur(const char *couleur, const char *texte) {
+    const char *c = (couleur != NULL) ? couleur : COLOR_RESET;
+    printf("| %s%-56.56s" COLOR_RESET " |\n", c, texte);
 }
 
 void initialiserNouvellePartie(Vaisseau *joueur) {
@@ -168,15 +169,15 @@ void menuEtatVaisseau(Vaisseau *joueur) {
         char ligne[128];
         printf(COLOR_CYAN "+----------------------------------------------------------+\n" COLOR_RESET);
         snprintf(ligne, sizeof(ligne), "LOGS TECHNIQUES : %-38.38s", joueur->nom);
-        imprimerLigneEtat(ligne);
+        imprimerLigneEtatCouleur(COLOR_BOLD COLOR_CYAN, ligne);
         printf(COLOR_CYAN "+----------------------------------------------------------+\n" COLOR_RESET);
         snprintf(ligne, sizeof(ligne), "CARBURANT:%-3d  FERRAILLE:%-4d  MISSILES:%-3d",
                  joueur->carburant, joueur->ferraille, joueur->missiles);
-        imprimerLigneEtat(ligne);
+        imprimerLigneEtatCouleur(COLOR_YELLOW, ligne);
         printf(COLOR_CYAN "+----------------------------------------------------------+\n" COLOR_RESET);
 
         // --- 2. SYSTÈMES (Calcul dynamique des bonus) ---
-        imprimerLigneEtat("DIAGNOSTIC SYSTEMES");
+        imprimerLigneEtatCouleur(COLOR_BOLD COLOR_WHITE, "DIAGNOSTIC SYSTEMES");
 
         // -- OFFENSIF --
         int bonusDegats = getBonusDegats(joueur);
@@ -187,12 +188,12 @@ void menuEtatVaisseau(Vaisseau *joueur) {
             snprintf(ligne, sizeof(ligne), " ARMEMENT : %-20.20s (Puissance: %-2d)",
                      joueur->systemeArme.nom, joueur->systemeArme.efficacite);
         }
-        imprimerLigneEtat(ligne);
+        imprimerLigneEtatCouleur(COLOR_RED, ligne);
 
         // -- DEFENSIF --
         snprintf(ligne, sizeof(ligne), " BOUCLIER : %-20.20s (Charge: %d/%d)",
                  joueur->systemeBouclier.nom, joueur->bouclierActuel, joueur->systemeBouclier.efficacite);
-        imprimerLigneEtat(ligne);
+        imprimerLigneEtatCouleur(COLOR_BLUE, ligne);
 
         // -- MOTEURS --
         int bonusPilote = getBonusEsquive(joueur);
@@ -205,12 +206,12 @@ void menuEtatVaisseau(Vaisseau *joueur) {
             snprintf(ligne, sizeof(ligne), " MOTEURS  : Niveau %-2d  Esquive:%2d%%",
                      joueur->moteurs, esquiveTotale);
         }
-        imprimerLigneEtat(ligne);
+        imprimerLigneEtatCouleur(COLOR_GREEN, ligne);
 
          printf(COLOR_CYAN "+----------------------------------------------------------+\n" COLOR_RESET);
 
         // --- 3. ÉQUIPAGE ---
-        imprimerLigneEtat("RAPPORT D'EQUIPAGE");
+        imprimerLigneEtatCouleur(COLOR_BOLD COLOR_WHITE, "RAPPORT D'EQUIPAGE");
         
         for(int i=0; i<3; i++) {
             Membre *m = &joueur->equipage[i];
@@ -221,10 +222,11 @@ void menuEtatVaisseau(Vaisseau *joueur) {
 
                 snprintf(ligne, sizeof(ligne), " %d. %-16.16s [%-9.9s]  Vie:%3d%%  XP:%-8.8s",
                          i+1, m->nom, getRoleNom(m->role), m->pv, xpLabel);
-                imprimerLigneEtat(ligne);
+                const char *couleurMembre = (m->pv > 50) ? COLOR_GREEN : (m->pv > 25 ? COLOR_YELLOW : COLOR_RED);
+                imprimerLigneEtatCouleur(couleurMembre, ligne);
             } else {
                 snprintf(ligne, sizeof(ligne), " %d. --- POSTE VACANT ---", i+1);
-                imprimerLigneEtat(ligne);
+                imprimerLigneEtatCouleur(COLOR_WHITE, ligne);
             }
         }
         printf(COLOR_CYAN "+----------------------------------------------------------+\n" COLOR_RESET);
